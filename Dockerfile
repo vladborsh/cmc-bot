@@ -1,5 +1,6 @@
 # Use Node.js image
 FROM node:14.15.5
+ARG port
 
 # Set the working directory in the Docker image
 WORKDIR /usr/src/app
