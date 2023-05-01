@@ -1,9 +1,11 @@
 import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
+import express from 'express';
 
 // for testing purpose
 // const url_test        = 'https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
 
+const port            = process.env.PORT || 3000                                              ;
 const cmcUrl          = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest' ;
 const cryptoPanicUrl  = 'https://cryptopanic.com/api/v1/posts/'                               ;
 const cmcToken        = process.env.CMC_TOKEN                                                 ;
@@ -13,6 +15,18 @@ const totalSelection  = 7                                                       
 const newsLimit       = 3                                                                     ;
 const newsAgeDays     = 30                                                                    ;
 const omitSymbols     = ['BTC', 'USDT', 'USDC', 'ETH', 'BSV']                                 ;
+
+// ----------------------------------
+// Heroku requires port for listening
+// ----------------------------------
+const app = express();
+app.listen(port, () => {
+  console.log(`\n\nServer running on port ${port}.\n\n`);
+});
+
+// ----------------------------------
+// Functions
+// ----------------------------------
 
 const getCryptopanicUrl = (cryptoAssets, token) => {
   return `${cryptoPanicUrl}?auth_token=${token}&currencies=${cryptoAssets}&filter=important`;
