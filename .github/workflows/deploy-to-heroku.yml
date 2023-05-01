@@ -1,0 +1,35 @@
+name: Deploy to Heroku
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Login to Heroku Container Registry
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: docker login --username=_ --password=$HEROKU_API_KEY registry.heroku.com
+
+    - name: Build Docker image and push to Heroku Container Registry
+      env:
+        HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+        TG_TOKEN: ${{ secrets.TG_TOKEN }}
+        CMC_TOKEN: ${{ secrets.CMC_TOKEN }}
+        CRYPTO_PANIC_TOKEN: ${{ secrets.CRYPTO_PANIC_TOKEN }}
+      run: |
+        docker build --build-arg TG_TOKEN=$TG_TOKEN --build-arg CMC_TOKEN=$CMC_TOKEN --build-arg CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN -t registry.heroku.com/$HEROKU_APP_NAME/web .
+        docker push registry.heroku.com/$HEROKU_APP_NAME/web
+
+    - name: Release image to Heroku
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+      run: |
+        heroku container:release web -a $HEROKU_APP_NAME
