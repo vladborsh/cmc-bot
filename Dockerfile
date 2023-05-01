@@ -22,9 +22,10 @@ ARG CRYPTO_PANIC_TOKEN
 ENV CMC_TOKEN=$CMC_TOKEN
 ENV TG_TOKEN=$TG_TOKEN
 ENV CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN
+ENV PORT=$port
 
 # Expose the port your app runs on
-EXPOSE 3000
+EXPOSE $PORT
 
 # The command to start your app
 CMD [ "node", "index.js" ]
