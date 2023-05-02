@@ -23,8 +23,11 @@ jobs:
         TG_TOKEN: ${{ secrets.TG_TOKEN }}
         CMC_TOKEN: ${{ secrets.CMC_TOKEN }}
         CRYPTO_PANIC_TOKEN: ${{ secrets.CRYPTO_PANIC_TOKEN }}
+        AWS_ACCESS_KEY_ID: ${{ AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_KEY: ${{ AWS_SECRET_KEY }}
+        AWS_REGION: ${{ AWS_REGION }}
       run: |
-        docker build --build-arg TG_TOKEN=$TG_TOKEN --build-arg CMC_TOKEN=$CMC_TOKEN --build-arg CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN -t registry.heroku.com/$HEROKU_APP_NAME/web .
+        docker build --build-arg TG_TOKEN=$TG_TOKEN --build-arg CMC_TOKEN=$CMC_TOKEN --build-arg CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_KEY=$AWS_SECRET_KEY --build-arg AWS_REGION=$AWS_REGION  -t registry.heroku.com/$HEROKU_APP_NAME/web .
         docker push registry.heroku.com/$HEROKU_APP_NAME/web
 
     - name: Release image to Heroku

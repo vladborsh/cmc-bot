@@ -1,20 +1,24 @@
 import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
 import express from 'express';
+import AWS from 'aws-sdk';
 
 // for testing purpose
 // const url_test        = 'https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
 
-const port            = process.env.PORT || 3000                                              ;
-const cmcUrl          = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest' ;
-const cryptoPanicUrl  = 'https://cryptopanic.com/api/v1/posts/'                               ;
-const cmcToken        = process.env.CMC_TOKEN                                                 ;
-const telegramToken   = process.env.TG_TOKEN                                                  ;
-const cryptoanicToken = process.env.CRYPTO_PANIC_TOKEN                                        ;
-const totalSelection  = 7                                                                     ;
-const newsLimit       = 3                                                                     ;
-const newsAgeDays     = 30                                                                    ;
-const omitSymbols     = ['BTC', 'USDT', 'USDC', 'ETH', 'BSV']                                 ;
+const port = process.env.PORT || 3000;
+const cmcUrl = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
+const cryptoPanicUrl = 'https://cryptopanic.com/api/v1/posts/';
+const cmcToken = process.env.CMC_TOKEN;
+const telegramToken = process.env.TG_TOKEN;
+const cryptoanicToken = process.env.CRYPTO_PANIC_TOKEN;
+const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const awsSecretAccessKey = process.env.AWS_SECRET_KEY;
+const awsRegion = process.env.AWS_REGION;
+const totalSelection = 7;
+const newsLimit = 3;
+const newsAgeDays = 30;
+const omitSymbols = ['BTC', 'USDT', 'USDC', 'ETH', 'BSV'];
 
 // ----------------------------------
 // Heroku requires port for listening
@@ -23,6 +27,37 @@ const app = express();
 app.listen(port, () => {
   console.log(`\n\nServer running on port ${port}.\n\n`);
 });
+
+// ----------------------------------
+// AWS stuff
+// ----------------------------------
+
+AWS.config.update({
+  accessKeyId: awsAccessKeyId,
+  secretAccessKey: awsSecretAccessKey,
+  region: awsRegion,
+});
+
+const s3 = new AWS.S3();
+
+function getOmitTokens() {
+  const getOmitTokens = {
+    Bucket: 'cmc-bot',
+    Key: 'omit-tokens.txt',
+  };
+
+  return new Promise((resolve, reject) => {
+    s3.getObject(getOmitTokens, (err, data) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else {
+        console.log(`File "omit-tokens" downloaded successfully. ${data.Body.toString()}`);
+        resolve(data.Body.toString().split(','));
+      }
+    });
+  });
+}
 
 // ----------------------------------
 // Functions
@@ -38,13 +73,11 @@ const replyMarkup = {
   one_time_keyboard: true,
 };
 
-const bot = new TelegramBot(telegramToken, { polling: true });
-
-function filterAndSortCoins(data, command) {
+function filterAndSortCoins(data, commandText, omitSymbols) {
   let filterPercentage;
   let sortPercentage;
 
-  if (command.text === 'Intra day (24h sort)') {
+  if (commandText === 'Intra day (24h sort)') {
     filterPercentage = (listing) => Math.abs(listing.quote.USD.percent_change_24h) > 3;
     sortPercentage = (a, b) => {
       const percent_change_24h =
@@ -52,7 +85,7 @@ function filterAndSortCoins(data, command) {
 
       return percent_change_24h;
     };
-  } else if (command.text === 'Intra day (7d sort)') {
+  } else if (commandText === 'Intra day (7d sort)') {
     filterPercentage = (listing) => Math.abs(listing.quote.USD.percent_change_7d) > 7;
     sortPercentage = (a, b) => {
       const percent_change_7d =
@@ -85,7 +118,7 @@ function filterAndSortCoins(data, command) {
   }));
 }
 
-function selectDayTradingFromMarket(command) {
+function selectDayTradingFromMarket(commandText, omitTokens) {
   return new Promise(async (resolve, reject) => {
     let response = null;
 
@@ -107,7 +140,7 @@ function selectDayTradingFromMarket(command) {
       reject(ex);
     }
     if (response) {
-      resolve(filterAndSortCoins(response.data.data, command));
+      resolve(filterAndSortCoins(response.data.data, commandText, omitTokens));
     }
   });
 }
@@ -203,6 +236,7 @@ function processDayTradingNews(newsByAsset) {
 // ----------------------------------
 // Telegram communications
 // ----------------------------------
+const bot = new TelegramBot(telegramToken, { polling: true });
 
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, 'Welcome to my bot! Type /data to get CMC data.', {
@@ -213,8 +247,8 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/[coin_data_24h,coin_data_7d]/, async (command) => {
   console.log(`[${command.date}] ${command.text}`);
 
-  const selection = await selectDayTradingFromMarket(command);
-
+  const omitTokens = await getOmitTokens();
+  const selection = await selectDayTradingFromMarket(command.text, omitTokens);
   const coinTechMessage = processDayTradingSelectionForMessage(selection);
 
   bot.sendMessage(command.chat.id, coinTechMessage, {
