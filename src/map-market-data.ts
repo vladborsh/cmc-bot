@@ -1,5 +1,6 @@
 import { CMCListingInfo } from "./interfaces/cmc-listing-info";
 import { MappedListing } from "./interfaces/mapped-listing";
+import { BotCommands } from "./static-config";
 
 const totalSelection = 7;
 
@@ -7,7 +8,7 @@ export function filterAndSortCoins(data: CMCListingInfo[], commandText: string, 
   let filterPercentage: (listing: CMCListingInfo) => boolean;
   let sortPercentage: (a: CMCListingInfo, b: CMCListingInfo) => number;
 
-  if (commandText === 'Intra day (24h sort)') {
+  if (commandText === BotCommands.price24h) {
     filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_24h) > 3;
     sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => {
       const percent_change_24h =
@@ -15,7 +16,7 @@ export function filterAndSortCoins(data: CMCListingInfo[], commandText: string, 
 
       return percent_change_24h;
     };
-  } else if (commandText === 'Intra day (7d sort)') {
+  } else if (commandText === BotCommands.price7d) {
     filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_7d) > 7;
     sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => {
       const percent_change_7d =
@@ -23,9 +24,12 @@ export function filterAndSortCoins(data: CMCListingInfo[], commandText: string, 
 
       return percent_change_7d;
     };
+  } else if (commandText === BotCommands.volume24h) {
+    filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_24h) > 2;
+    sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => b.quote.USD.volume_24h - a.quote.USD.volume_24h;
   } else {
     filterPercentage = () => true;
-    sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => b.quote.USD.volume_24h - a.quote.USD.volume_24h;
+    sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => b.quote.USD.volume_24h - a.quote.USD.volume_7d;
   }
 
   const filteredListings = data.filter(

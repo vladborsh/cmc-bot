@@ -7,7 +7,8 @@
     "node": ">=14.15.5"
   },
   "scripts": {
-    "start": "ts-node src/index.ts --local --no-bot",
+    "start": "nodemon src/index.ts --local --no-bot",
+    "start:bot": "nodemon src/index.ts --local",
     "start:prod": "node dist/index.js",
     "build": "tsc"
   },

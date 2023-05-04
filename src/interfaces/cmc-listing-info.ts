@@ -7,6 +7,7 @@ export interface CMCListingInfo {
       percent_change_7d: number;
       volume_change_24h: number;
       volume_24h: number;
+      volume_7d: number;
     }
   }
 }

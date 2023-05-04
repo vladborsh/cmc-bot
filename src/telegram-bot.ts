@@ -1,8 +1,9 @@
-import TelegramBot from "node-telegram-bot-api";
-import { EnvConfig } from "./env-config";
-import { DynamicConfig } from "./dynamic-config";
-import { getNews, selectDayTradingFromMarket } from "./requests";
-import { processDayTradingNews, processDayTradingSelectionForMessage } from "./formatting";
+import TelegramBot from 'node-telegram-bot-api';
+import { EnvConfig } from './env-config';
+import { DynamicConfig } from './dynamic-config';
+import { getNews, selectDayTradingFromMarket } from './requests';
+import { processDayTradingNews, processDayTradingSelectionForMessage } from './formatting';
+import { BotCommands } from './static-config';
 
 export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfig) {
   if (!envConfig.telegramToken) {
@@ -13,7 +14,13 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
   const bot = new TelegramBot(envConfig.telegramToken, { polling: true });
 
   const replyMarkup = {
-    keyboard: [[{ text: 'Intra day (24h sort)' }, { text: 'Intra day (7d sort)' }]],
+    keyboard: [
+      [
+        { text: BotCommands.price24h },
+        { text: BotCommands.price7d },
+        { text: BotCommands.volume24h },
+      ]
+    ],
     resize_keyboard: true,
     one_time_keyboard: true,
   };
@@ -42,7 +49,10 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
       },
     });
 
-    const newsByAsset = await getNews(selection.map((listing) => listing.symbol), envConfig);
+    const newsByAsset = await getNews(
+      selection.map((listing) => listing.symbol),
+      envConfig
+    );
 
     try {
       const coinNewsMessage = processDayTradingNews(newsByAsset);
