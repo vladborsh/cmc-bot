@@ -1,17 +1,29 @@
+# Stage 1: Build
 # Use Node.js image
-FROM node:14.15.5
+FROM node:14.15.5 AS build
 
 # Set the working directory in the Docker image
 WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
-
 # Install all dependencies
 RUN npm install
 
 # Copy the rest of your app's source code
 COPY . .
+# Build tsc
+RUN npm run build
+
+# Stage 2: Production
+FROM node:14.15.5
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install --only=production
+
+COPY --from=build /usr/src/app/dist /usr/src/app/dist
 
 # Declare build arguments
 ARG CMC_TOKEN
@@ -34,4 +46,4 @@ ENV AWS_REGION=$AWS_REGION
 # EXPOSE 3000
 
 # The command to start your app
-CMD [ "node", "index.js" ]
+CMD [ "node", "dist/index.js" ]

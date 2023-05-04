@@ -1,7 +1,10 @@
+import { MappedListing } from "./interfaces/mapped-listing";
+import { NewsArticle } from "./interfaces/news-article";
+
 const newsLimit = 3;
 const newsAgeDays = 30;
 
-export function processDayTradingSelectionForMessage(selection) {
+export function processDayTradingSelectionForMessage(selection: MappedListing[]) {
   return selection.reduce((res, listing, i) => {
     return res
       .concat(`\n \\#${i + 1}: __ *${listing.symbol}* __ \\(${prepareString(listing.name)}\\)`)
@@ -13,7 +16,7 @@ export function processDayTradingSelectionForMessage(selection) {
   }, 'Day trading selection: \n');
 }
 
-export function processDayTradingNews(newsByAsset) {
+export function processDayTradingNews(newsByAsset: Record<string, NewsArticle[]>) {
   return Object.entries(newsByAsset).reduce((res, [asset, news]) => {
     const filteredByDateNews = news.filter((article) =>
       validateDate(article.created_at, newsAgeDays)
@@ -36,11 +39,11 @@ export function processDayTradingNews(newsByAsset) {
   }, 'News for day trading: \n');
 }
 
-function validateDate(date, daysLimit) {
+function validateDate(date: string, daysLimit: number): boolean {
   const pickedDate = new Date(date);
   const todaysDate = new Date();
   todaysDate.setHours(0, 0, 0, 0);
-  const dateDifference = Math.abs(Number(todaysDate) - pickedDate);
+  const dateDifference = Math.abs(Number(todaysDate) - Number(pickedDate));
 
   if (dateDifference > 1000 * 60 * 60 * 24 * daysLimit) {
     return false;
@@ -49,7 +52,7 @@ function validateDate(date, daysLimit) {
   }
 }
 
-function prepareString(str) {
+function prepareString(str: string): string {
   return str
     .replace(/\-/g, '\\-')
     .replace(/\./g, '\\.')

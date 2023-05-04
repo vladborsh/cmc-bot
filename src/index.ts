@@ -2,9 +2,16 @@ import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
 import express from 'express';
 import AWS from 'aws-sdk';
-import { filterAndSortCoins } from './src/map-market-data.js';
-import { processDayTradingSelectionForMessage, processDayTradingNews } from './src/formatting.js';
-import { delay } from './src/utils.js';
+import { filterAndSortCoins } from './map-market-data';
+import { processDayTradingSelectionForMessage, processDayTradingNews } from './formatting';
+import { delay } from './utils';
+import { config } from 'dotenv';
+import { NewsArticle } from './interfaces/news-article';
+import { MappedListing } from './interfaces/mapped-listing';
+
+if (process.argv.includes('--local')) {
+  config();
+}
 
 // for testing purpose 'https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
 
@@ -38,7 +45,7 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
-function getOmitTokens() {
+function getOmitTokens(): Promise<string[]> {
   const getOmitTokens = {
     Bucket: 'cmc-bot',
     Key: 'omit-tokens.txt',
@@ -50,6 +57,10 @@ function getOmitTokens() {
         console.error(err);
         reject(err);
       } else {
+        if (!data.Body) {
+          reject('data Body was not provided');
+          return;
+        }
         console.log(`File "omit-tokens" downloaded successfully. ${data.Body.toString()}`);
         resolve(data.Body.toString().split(','));
       }
@@ -61,7 +72,10 @@ function getOmitTokens() {
 // Requests
 // ----------------------------------
 
-function selectDayTradingFromMarket(commandText, omitTokens) {
+function selectDayTradingFromMarket(
+  commandText: string,
+  omitTokens: string[]
+): Promise<MappedListing[]> {
   return new Promise(async (resolve, reject) => {
     let response = null;
 
@@ -88,12 +102,14 @@ function selectDayTradingFromMarket(commandText, omitTokens) {
   });
 }
 
-async function getNews(cryptoAssets) {
-  let newsByAsset = {};
+async function getNews(cryptoAssets: string[]) {
+  let newsByAsset: Record<string, NewsArticle[]> = {};
   for (let i = 0; i < cryptoAssets.length; i++) {
     try {
       const asset = cryptoAssets[i];
-      const response = await axios.get(`${cryptoPanicUrl}?auth_token=${cryptoanicToken}&currencies=${asset}&filter=important`);
+      const response = await axios.get(
+        `${cryptoPanicUrl}?auth_token=${cryptoanicToken}&currencies=${asset}&filter=important`
+      );
       const news = response.data.results;
       newsByAsset[asset] = news;
       await delay(1000); // add a delay of 1 second between each API call
@@ -107,47 +123,73 @@ async function getNews(cryptoAssets) {
 // ----------------------------------
 // Telegram communications
 // ----------------------------------
-const bot = new TelegramBot(telegramToken, { polling: true });
 
-const replyMarkup = {
-  keyboard: [[{ text: 'Intra day (24h sort)' }, { text: 'Intra day (7d sort)' }]],
-  resize_keyboard: true,
-  one_time_keyboard: true,
-};
-
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Welcome to my bot! Type /data to get CMC data.', {
-    reply_markup: replyMarkup,
-  });
-});
-
-bot.onText(/[coin_data_24h,coin_data_7d]/, async (command) => {
-  console.log(`[${command.date}] ${command.text}`);
-
-  const omitTokens = await getOmitTokens();
-  const selection = await selectDayTradingFromMarket(command.text, omitTokens);
-  const coinTechMessage = processDayTradingSelectionForMessage(selection);
-
-  bot.sendMessage(command.chat.id, coinTechMessage, {
-    parse_mode: 'MarkdownV2',
-    reply_markup: {},
-  });
-
-  const newsByAsset = await getNews(selection.map((listing) => listing.symbol));
-
-  try {
-    const coinNewsMessage = processDayTradingNews(newsByAsset);
-
-    bot.sendMessage(command.chat.id, coinNewsMessage, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: replyMarkup,
-      disable_web_page_preview: true,
-    });
-  } catch (e) {
-    bot.sendMessage(command.chat.id, `Can't retrieve news at the moment 🤷‍♂️`, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: replyMarkup,
-      disable_web_page_preview: true,
-    });
+function runTelegramBot() {
+  if (!telegramToken) {
+    console.error('TG token was not provided');
+    return;
   }
-});
+
+  const bot = new TelegramBot(telegramToken, { polling: true });
+
+  const replyMarkup = {
+    keyboard: [[{ text: 'Intra day (24h sort)' }, { text: 'Intra day (7d sort)' }]],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  };
+
+  bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, 'Welcome to my bot! Type /data to get CMC data.', {
+      reply_markup: replyMarkup,
+    });
+  });
+
+  bot.onText(/[coin_data_24h,coin_data_7d]/, async (command) => {
+    console.log(`[${command.date}] ${command.text}`);
+
+    if (!command.text) {
+      return;
+    }
+
+    const omitTokens = await getOmitTokens();
+    const selection = await selectDayTradingFromMarket(command.text, omitTokens);
+    const coinTechMessage = processDayTradingSelectionForMessage(selection);
+
+    bot.sendMessage(command.chat.id, coinTechMessage, {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        remove_keyboard: true,
+      },
+    });
+
+    const newsByAsset = await getNews(selection.map((listing) => listing.symbol));
+
+    try {
+      const coinNewsMessage = processDayTradingNews(newsByAsset);
+
+      bot.sendMessage(command.chat.id, coinNewsMessage, {
+        parse_mode: 'MarkdownV2',
+        reply_markup: replyMarkup,
+        disable_web_page_preview: true,
+      });
+    } catch (e) {
+      bot.sendMessage(command.chat.id, `Can't retrieve news at the moment 🤷‍♂️`, {
+        parse_mode: 'MarkdownV2',
+        reply_markup: replyMarkup,
+        disable_web_page_preview: true,
+      });
+    }
+  });
+}
+
+async function get24hSelection() {
+  const omitTokens = await getOmitTokens();
+  const selection = await selectDayTradingFromMarket('Intra day (24h sort)', omitTokens);
+  console.log(selection);
+}
+
+if (process.argv.includes('--no-bot')) {
+  get24hSelection();
+} else {
+  runTelegramBot();
+}
