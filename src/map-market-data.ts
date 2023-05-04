@@ -9,7 +9,8 @@ export function filterAndSortCoins(data: CMCListingInfo[], commandText: string, 
   let sortPercentage: (a: CMCListingInfo, b: CMCListingInfo) => number;
 
   if (commandText === BotCommands.price24h) {
-    filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_24h) > 3;
+    filterPercentage = (listing: CMCListingInfo) => listing.quote.USD.volume_24h > 30000000;
+
     sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => {
       const percent_change_24h =
         Math.abs(b.quote.USD.percent_change_24h) - Math.abs(a.quote.USD.percent_change_24h);
@@ -17,7 +18,7 @@ export function filterAndSortCoins(data: CMCListingInfo[], commandText: string, 
       return percent_change_24h;
     };
   } else if (commandText === BotCommands.price7d) {
-    filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_7d) > 7;
+    filterPercentage = (listing: CMCListingInfo) => Math.abs(listing.quote.USD.percent_change_24h) > 2 && listing.quote.USD.volume_24h > 50000000;
     sortPercentage = (a: CMCListingInfo, b: CMCListingInfo) => {
       const percent_change_7d =
         Math.abs(b.quote.USD.percent_change_7d) - Math.abs(a.quote.USD.percent_change_7d);
