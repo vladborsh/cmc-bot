@@ -1,6 +1,6 @@
 # Stage 1: Build
 # Use Node.js image
-FROM node:14.15.5 AS build
+FROM node:16.13.0 AS build
 
 # Set the working directory in the Docker image
 WORKDIR /usr/src/app
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production
-FROM node:14.15.5
+FROM node:16.13.0
 
 WORKDIR /usr/src/app
 
@@ -32,6 +32,8 @@ ARG CRYPTO_PANIC_TOKEN
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_KEY
 ARG AWS_REGION
+ARG BINANCE_API_KEY
+ARG BINANCE_SECRET_KEY
 
 # Set the environment variable
 ENV CMC_TOKEN=$CMC_TOKEN
@@ -40,6 +42,8 @@ ENV CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ENV AWS_SECRET_KEY=$AWS_SECRET_KEY
 ENV AWS_REGION=$AWS_REGION
+ENV BINANCE_API_KEY=$BINANCE_API_KEY
+ENV BINANCE_SECRET_KEY=$BINANCE_SECRET_KEY
 
 # Expose the port your app runs on
 # Expose is NOT supported by Heroku

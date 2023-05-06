@@ -6,6 +6,8 @@ import { CryptopanicNewsMapper } from './cryptopanic-news-mapper';
 import { BotCommands } from './enums';
 import { MarketDataMapper } from './market-data-mapper';
 import { processDayTradingSelectionForMessage } from './formatting';
+import { BinanceChartSnapshot } from './exchange/binance-chart-snaphot';
+import { BinanceClient } from './exchange/binance-client';
 
 export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfig) {
   if (!envConfig.TG_TOKEN) {
@@ -21,7 +23,7 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
         { text: BotCommands.price24h },
         { text: BotCommands.price7d },
         { text: BotCommands.volume24h },
-      ]
+      ],
     ],
     resize_keyboard: true,
     one_time_keyboard: true,
@@ -46,14 +48,30 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
     const marketData = await selectDayTradingFromMarket(envConfig);
     const selection = marketDataMapper.filterAndSortCoins(marketData, command.text);
 
-    const coinTechMessage = processDayTradingSelectionForMessage(selection);
-
-    bot.sendMessage(command.chat.id, coinTechMessage, {
+    bot.sendMessage(command.chat.id, processDayTradingSelectionForMessage(selection), {
       parse_mode: 'MarkdownV2',
       reply_markup: {
         remove_keyboard: true,
       },
     });
+
+    const symbolNames = selection.map(listing => `${listing.symbol}USDT`);
+
+    const binanceClient = await BinanceClient.getInstance(envConfig);
+    const binanceChartSnapshot = new BinanceChartSnapshot(binanceClient);
+
+    for (let symbol of symbolNames) {
+      if (BinanceClient.isSymbolExists(symbol)) {
+        console.log(`load chart for ${symbol}...`);
+        try {
+          const img = await binanceChartSnapshot.generateImage(symbol, '1h', 80);
+          await bot.sendPhoto(command.chat.id, img, { caption: `${symbol} price chart` });
+        } catch (e) {
+          console.error('error during chart image generation');
+          console.log(e);
+        }
+      }
+    }
 
     const newsByAsset = await getNews(
       selection.map((listing) => listing.symbol),

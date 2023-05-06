@@ -1,17 +1,21 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { EnvConfig } from "./env-config";
 import { NewsArticle } from "./interfaces/news-article.interface";
 import { delay } from "./utils";
 import { CMCListingInfo } from "./interfaces/cmc-listing-info.interface";
 
+interface CMCResponse {
+  data: CMCListingInfo[]
+}
+
 export function selectDayTradingFromMarket(
   envConfig: EnvConfig,
 ): Promise<CMCListingInfo[]> {
   return new Promise(async (resolve, reject) => {
-    let response = null;
+    let response: AxiosResponse<CMCResponse> | null = null;
 
     try {
-      response = await axios.get(`${envConfig.CMC_URL}`, {
+      response = await axios.get<CMCResponse>(`${envConfig.CMC_URL}`, {
         headers: {
           'X-CMC_PRO_API_KEY': envConfig.CMC_TOKEN,
         },
@@ -24,7 +28,6 @@ export function selectDayTradingFromMarket(
       });
     } catch (ex) {
       response = null;
-      console.log(ex);
       reject(ex);
     }
     if (response) {

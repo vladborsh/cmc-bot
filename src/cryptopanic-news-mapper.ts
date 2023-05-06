@@ -7,7 +7,6 @@ export class CryptopanicNewsMapper {
   constructor(private config: DynamicConfigValues) {}
 
   processDayTradingNews(newsByAsset: Record<string, NewsArticle[]>) {
-    console.log(newsByAsset);
     return Object.entries(newsByAsset).reduce((res, [asset, news]) => {
       const filteredByDateNews = news.filter((article) =>
         this.validateDate(article.created_at, this.config.NEWS_AGE_DAYS_LIMIT)

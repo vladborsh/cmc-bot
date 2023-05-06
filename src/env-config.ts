@@ -8,6 +8,8 @@ export class EnvConfig {
   public AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
   public AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
   public AWS_REGION = process.env.AWS_REGION;
+  public BINANCE_API_KEY = process.env.BINANCE_API_KEY;
+  public BINANCE_SECRET_KEY = process.env.BINANCE_SECRET_KEY;
 
   private static instance: EnvConfig;
 
