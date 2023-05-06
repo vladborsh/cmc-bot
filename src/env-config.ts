@@ -1,13 +1,13 @@
 export class EnvConfig {
-  public port = process.env.PORT || 3000;
-  public cmcUrl = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
-  public cryptoPanicUrl = 'https://cryptopanic.com/api/v1/posts/';
-  public cmcToken = process.env.CMC_TOKEN;
-  public telegramToken = process.env.TG_TOKEN;
-  public cryptoanicToken = process.env.CRYPTO_PANIC_TOKEN;
-  public awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  public awsSecretAccessKey = process.env.AWS_SECRET_KEY;
-  public awsRegion = process.env.AWS_REGION;
+  public PORT = process.env.PORT || 3000;
+  public CMC_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
+  public CRYPTO_PANIC_URL = 'https://cryptopanic.com/api/v1/posts/';
+  public CMC_TOKEN = process.env.CMC_TOKEN;
+  public TG_TOKEN = process.env.TG_TOKEN;
+  public CRYPTO_PANIC_TOKEN = process.env.CRYPTO_PANIC_TOKEN;
+  public AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+  public AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
+  public AWS_REGION = process.env.AWS_REGION;
 
   private static instance: EnvConfig;
 

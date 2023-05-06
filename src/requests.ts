@@ -1,22 +1,19 @@
 import axios from "axios";
 import { EnvConfig } from "./env-config";
-import { NewsArticle } from "./interfaces/news-article";
-import { MappedListing } from "./interfaces/mapped-listing";
-import { filterAndSortCoins } from "./map-market-data";
+import { NewsArticle } from "./interfaces/news-article.interface";
 import { delay } from "./utils";
+import { CMCListingInfo } from "./interfaces/cmc-listing-info.interface";
 
 export function selectDayTradingFromMarket(
-  commandText: string,
-  omitTokens: string[],
   envConfig: EnvConfig,
-): Promise<MappedListing[]> {
+): Promise<CMCListingInfo[]> {
   return new Promise(async (resolve, reject) => {
     let response = null;
 
     try {
-      response = await axios.get(`${envConfig.cmcUrl}`, {
+      response = await axios.get(`${envConfig.CMC_URL}`, {
         headers: {
-          'X-CMC_PRO_API_KEY': envConfig.cmcToken,
+          'X-CMC_PRO_API_KEY': envConfig.CMC_TOKEN,
         },
         params: {
           limit: 100,
@@ -31,7 +28,7 @@ export function selectDayTradingFromMarket(
       reject(ex);
     }
     if (response) {
-      resolve(filterAndSortCoins(response.data.data, commandText, omitTokens));
+      resolve(response.data.data);
     }
   });
 }
@@ -42,7 +39,7 @@ export async function getNews(cryptoAssets: string[], envConfig: EnvConfig,) {
     try {
       const asset = cryptoAssets[i];
       const response = await axios.get(
-        `${envConfig.cryptoPanicUrl}?auth_token=${envConfig.cryptoanicToken}&currencies=${asset}&filter=important`
+        `${envConfig.CRYPTO_PANIC_URL}?auth_token=${envConfig.CRYPTO_PANIC_TOKEN}&currencies=${asset}&filter=important`
       );
       const news = response.data.results;
       newsByAsset[asset] = news;

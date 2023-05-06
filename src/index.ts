@@ -4,6 +4,7 @@ import { EnvConfig } from './env-config';
 import { DynamicConfig } from './dynamic-config';
 import { runTelegramBot } from './telegram-bot';
 import { selectDayTradingFromMarket } from './requests';
+import { MarketDataMapper } from './market-data-mapper';
 
 if (process.argv.includes('--local')) {
   config();
@@ -17,14 +18,16 @@ const dynamicConfig = DynamicConfig.getInstance(envConfig);
 // Heroku requires port for listening
 // ----------------------------------
 const app = express();
-app.listen(envConfig.port, () => {
-  console.log(`\n\nServer running on port ${envConfig.port}.\n\n`);
+app.listen(envConfig.PORT, () => {
+  console.log(`\n\nServer running on port ${envConfig.PORT}.\n\n`);
 });
 // ----------------------------------
 
 async function get24hSelection() {
-  const omitTokens = await dynamicConfig.getOmitTokens();
-  const selection = await selectDayTradingFromMarket('Intra day (24h sort)', omitTokens, envConfig);
+  const config = await dynamicConfig.getConfig();
+  const marketData = await selectDayTradingFromMarket(envConfig);
+  const marketDataMapper = new MarketDataMapper(config);
+  const selection = marketDataMapper.filterAndSortCoins(marketData, 'Intra day (24h sort)');
   console.log(selection);
 }
 

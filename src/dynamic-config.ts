@@ -1,5 +1,6 @@
 import AWS from "aws-sdk";
 import { EnvConfig } from "./env-config";
+import { DynamicConfigValues } from "./interfaces/dynamic-config.interface";
 
 export class DynamicConfig {
   private s3: AWS.S3;
@@ -7,9 +8,9 @@ export class DynamicConfig {
 
   private constructor(envConfig: EnvConfig) {
     AWS.config.update({
-      accessKeyId: envConfig.awsAccessKeyId,
-      secretAccessKey: envConfig.awsSecretAccessKey,
-      region:envConfig.awsRegion,
+      accessKeyId: envConfig.AWS_ACCESS_KEY_ID,
+      secretAccessKey: envConfig.AWS_SECRET_KEY,
+      region:envConfig.AWS_REGION,
     });
 
     this.s3 = new AWS.S3();
@@ -23,10 +24,10 @@ export class DynamicConfig {
     return this.instance;
   }
 
-  public getOmitTokens(): Promise<string[]> {
+  public getConfig(): Promise<DynamicConfigValues> {
     const getOmitTokens = {
       Bucket: 'cmc-bot',
-      Key: 'omit-tokens.txt',
+      Key: 'dynamic_config.json',
     };
 
     return new Promise((resolve, reject) => {
@@ -39,8 +40,14 @@ export class DynamicConfig {
             reject('data Body was not provided');
             return;
           }
-          console.log(`File "omit-tokens" downloaded successfully. ${data.Body.toString()}`);
-          resolve(data.Body.toString().split(','));
+          try {
+            const config: DynamicConfigValues = JSON.parse(data.Body.toString());
+            console.log(`config downloaded successfully. ${data.Body.toString()}`);
+            resolve(config);
+          } catch(e) {
+            reject('config parsing failed');
+          }
+
         }
       });
     });
