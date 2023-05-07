@@ -6,7 +6,7 @@ import { BotCommands } from './enums';
 export class MarketDataMapper {
   constructor(private config: DynamicConfigValues) {}
 
-  public filterAndSortCoins(data: CMCListingInfo[], commandText: string): MappedListing[] {
+  public filterAndSortCoins(data: CMCListingInfo[], commandText: BotCommands): MappedListing[] {
     let filter: (listing: CMCListingInfo) => boolean;
     let sorter: (a: CMCListingInfo, b: CMCListingInfo) => number;
 

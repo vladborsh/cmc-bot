@@ -35,19 +35,20 @@ export class DynamicConfig {
         if (err) {
           console.error(err);
           reject(err);
-        } else {
-          if (!data.Body) {
-            reject('data Body was not provided');
-            return;
-          }
-          try {
-            const config: DynamicConfigValues = JSON.parse(data.Body.toString());
-            console.log(`config downloaded successfully. ${data.Body.toString()}`);
-            resolve(config);
-          } catch(e) {
-            reject('config parsing failed');
-          }
+          return;
+        }
 
+        if (!data.Body) {
+          reject('data Body was not provided');
+          return;
+        }
+
+        try {
+          const config: DynamicConfigValues = JSON.parse(data.Body.toString());
+          console.log(`config downloaded successfully. ${data.Body.toString()}`);
+          resolve(config);
+        } catch(e) {
+          reject('config parsing failed');
         }
       });
     });

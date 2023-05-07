@@ -1,38 +1,26 @@
-import express from 'express';
-import { config } from 'dotenv';
-import { EnvConfig } from './env-config';
+import dotenv from 'dotenv';
 import { DynamicConfig } from './dynamic-config';
-import { runTelegramBot } from './telegram-bot';
-import { selectDayTradingFromMarket } from './requests';
-import { MarketDataMapper } from './market-data-mapper';
+import { EnvConfig } from './env-config';
+import { runTelegramBot } from './telegram-bot/telegram-bot-main';
+import { getMarketSelection } from './local-env-helper';
+import { BotCommands } from './enums';
+import { setupPortListener } from './port-listener';
 
-if (process.argv.includes('--local')) {
-  config();
+const isBotEnabled = !process.argv.includes('--no-bot');
+const isDotEnvEnabled = process.argv.includes('--local');
+
+if (isDotEnvEnabled) {
+  dotenv.config();
 }
 
 const envConfig = EnvConfig.getInstance();
-
 const dynamicConfig = DynamicConfig.getInstance(envConfig);
 
-// ----------------------------------
 // Heroku requires port for listening
-// ----------------------------------
-const app = express();
-app.listen(envConfig.PORT, () => {
-  console.log(`\n\nServer running on port ${envConfig.PORT}.\n\n`);
-});
-// ----------------------------------
+setupPortListener(envConfig);
 
-async function get24hSelection() {
-  const config = await dynamicConfig.getConfig();
-  const marketData = await selectDayTradingFromMarket(envConfig);
-  const marketDataMapper = new MarketDataMapper(config);
-  const selection = marketDataMapper.filterAndSortCoins(marketData, 'Intra day (24h sort)');
-  console.log(selection);
-}
-
-if (process.argv.includes('--no-bot')) {
-  get24hSelection();
-} else {
+if (isBotEnabled) {
   runTelegramBot(envConfig, dynamicConfig);
+} else {
+  getMarketSelection(BotCommands.volume24h, dynamicConfig, envConfig);
 }

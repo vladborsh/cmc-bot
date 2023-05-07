@@ -26,6 +26,8 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
+        BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+        BINANCE_SECRET_KEY: ${{ secrets.BINANCE_SECRET_KEY }}
       run: |
         docker build --build-arg TG_TOKEN=$TG_TOKEN --build-arg CMC_TOKEN=$CMC_TOKEN --build-arg CRYPTO_PANIC_TOKEN=$CRYPTO_PANIC_TOKEN --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_KEY=$AWS_SECRET_KEY --build-arg AWS_REGION=$AWS_REGION --build-arg BINANCE_API_KEY=$BINANCE_API_KEY --build-arg BINANCE_SECRET_KEY=$BINANCE_SECRET_KEY -t registry.heroku.com/$HEROKU_APP_NAME/web .
         docker push registry.heroku.com/$HEROKU_APP_NAME/web

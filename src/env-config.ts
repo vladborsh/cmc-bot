@@ -10,6 +10,8 @@ export class EnvConfig {
   public AWS_REGION = process.env.AWS_REGION;
   public BINANCE_API_KEY = process.env.BINANCE_API_KEY;
   public BINANCE_SECRET_KEY = process.env.BINANCE_SECRET_KEY;
+  public CAPITAL_COM_API_KEY = process.env.CAPITAL_COM_API_KEY;
+  public CAPITAL_COM_CUSTOM_PASS = process.env.CAPITAL_COM_CUSTOM_PASS;
 
   private static instance: EnvConfig;
 

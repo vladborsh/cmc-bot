@@ -1,6 +1,5 @@
 import { prepareString } from "./formatting";
 import { DynamicConfigValues } from "./interfaces/dynamic-config.interface";
-import { MappedListing } from "./interfaces/mapped-listing.interface";
 import { NewsArticle } from "./interfaces/news-article.interface";
 
 export class CryptopanicNewsMapper {

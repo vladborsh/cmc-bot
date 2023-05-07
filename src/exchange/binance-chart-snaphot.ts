@@ -1,6 +1,7 @@
 import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 import { format } from 'date-fns';
 import { BinanceClient } from './binance-client';
+import { CandleChartResult, CandleChartInterval_LT } from 'binance-api-node';
 
 export class BinanceChartSnapshot {
   canvasWidth = 800;
@@ -14,18 +15,22 @@ export class BinanceChartSnapshot {
 
   constructor(private binanceClient: BinanceClient) {}
 
-  async generateImage(symbol: string, interval: any, limit: number): Promise<Buffer> {
+  async generateImage(
+    symbol: string,
+    interval: CandleChartInterval_LT,
+    limit: number
+  ): Promise<Buffer> {
     const candles = await this.binanceClient.getCandles(symbol, interval, limit);
 
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    const maxPrice = Math.max(...candles.map((kline: any) => parseFloat(kline.high)));
-    const minPrice = Math.min(...candles.map((kline: any) => parseFloat(kline.low)));
+    const maxPrice = Math.max(...candles.map((kline: CandleChartResult) => parseFloat(kline.high)));
+    const minPrice = Math.min(...candles.map((kline: CandleChartResult) => parseFloat(kline.low)));
     const priceRange = maxPrice - minPrice;
     const priceStep = priceRange / this.scaleStep;
 
-    candles.forEach((kline: any, index: number) => {
+    candles.forEach((kline: CandleChartResult, index: number) => {
       this.renderCandle(kline, index, priceRange, minPrice, ctx);
     });
 
@@ -35,7 +40,13 @@ export class BinanceChartSnapshot {
     return canvas.toBuffer('image/png');
   }
 
-  private renderCandle(kline: any, index: number, priceRange: number, minPrice: number,  ctx: CanvasRenderingContext2D) {
+  private renderCandle(
+    kline: CandleChartResult,
+    index: number,
+    priceRange: number,
+    minPrice: number,
+    ctx: CanvasRenderingContext2D
+  ) {
     const open = parseFloat(kline.open);
     const close = parseFloat(kline.close);
     const high = parseFloat(kline.high);
@@ -77,7 +88,6 @@ export class BinanceChartSnapshot {
     }
   }
 
-
   private renderDatetimeLabels(candles: any[], limit: number, ctx: CanvasRenderingContext2D) {
     const labelStep = Math.ceil(limit / 5); // value to control the number of labels displayed
 
@@ -86,7 +96,11 @@ export class BinanceChartSnapshot {
         const timestamp = kline.openTime;
         const date = new Date(timestamp);
         const formattedDate = format(date, 'MMM dd hh:mm');
-        const x = this.scalePaddingLeft + this.scaleWidth + index * (this.candleWidth + this.padding) + this.candleWidth / 2;
+        const x =
+          this.scalePaddingLeft +
+          this.scaleWidth +
+          index * (this.candleWidth + this.padding) +
+          this.candleWidth / 2;
         ctx.fillText(formattedDate, x, this.canvasHeight - 20);
       }
     });

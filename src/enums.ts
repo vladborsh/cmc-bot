@@ -3,3 +3,7 @@ export enum BotCommands {
   price7d = 'Price change 7d',
   volume24h = 'Volume change 24h',
 }
+
+export enum TimeIntervals {
+  ONE_HOUR = '1h',
+};
