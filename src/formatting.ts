@@ -12,7 +12,7 @@ export function processDayTradingSelectionForMessage(selection: MappedListing[])
   }, 'Day trading selection: \n');
 }
 
-export function  prepareString(str: string): string {
+export function prepareString(str: string): string {
   return str
     .replace(/\-/g, '\\-')
     .replace(/\./g, '\\.')
@@ -24,3 +24,6 @@ export function  prepareString(str: string): string {
     .replace(/\#/g, '\\#')
     .replace(/\=/g, '\\=');
 }
+
+export const chop = (str: string): string => str.substring(0, str.length - 1);
+

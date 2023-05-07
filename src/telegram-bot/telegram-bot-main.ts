@@ -13,7 +13,7 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
   const bot = new TelegramBot(envConfig.TG_TOKEN, { polling: true });
 
   bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Welcome to my bot! Type /data to get CMC data.', {
+    bot.sendMessage(msg.chat.id, 'Welcome to my bot! Choose command from palette', {
       reply_markup: replyMarkup,
     });
   });
@@ -31,17 +31,11 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
         await handleCoinDataCommand(bot, command, envConfig, dynamicConfig);
       } catch (error) {
         console.error('Error while handling coin data command:', error);
+        bot.sendMessage(command.chat.id, `I'm sorry, something happens during processing...`, {
+          reply_markup: replyMarkup,
+        });
       }
     }
   );
-
-  bot.on('message', (msg: TelegramBot.Message) => {
-    // Make sure the message is a text message and not a command
-    if (msg.text && !msg.text.startsWith('/')) {
-      bot.sendMessage(msg.chat.id, 'Please try command from pallette', {
-        reply_markup: replyMarkup,
-      });
-    }
-  });
 }
 
