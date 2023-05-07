@@ -34,5 +34,14 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
       }
     }
   );
+
+  bot.on('message', (msg: TelegramBot.Message) => {
+    // Make sure the message is a text message and not a command
+    if (msg.text && !msg.text.startsWith('/')) {
+      bot.sendMessage(msg.chat.id, 'Please try command from pallette', {
+        reply_markup: replyMarkup,
+      });
+    }
+  });
 }
 
