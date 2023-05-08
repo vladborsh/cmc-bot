@@ -22,9 +22,11 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
   },
   [BotStates.CRYPTO_CURRENCY_CHARTS]: async (
     actions: TelegramBotActions,
-    message: TelegramBot.Message
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
   ) => {
     await actions.renderCryptoCharts(message.chat.id);
+    state.send(BotTransitions.GO_TO_CRYPTO_NEWS);
   },
   [BotStates.LATEST_NEWS]: async (actions: TelegramBotActions, message: TelegramBot.Message) => {
     actions.askAboutNews(message.chat.id);

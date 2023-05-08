@@ -4,7 +4,7 @@ import { EnvConfig } from '../env-config';
 import { DynamicConfig } from '../dynamic-config';
 import { TelegramBotActions } from './telegram-bot-helpers';
 import { createBotState } from './state-machine';
-import { BotStates, BotCommands } from '../enums';
+import { BotStates, BotCommands, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-configs';
 
@@ -57,18 +57,39 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
     }
 
     try {
-      const transition = botMessageTextToState[message.text];
+      let transition: BotTransitions | undefined = botMessageTextToState[message.text];
+
+      if (!transition) {
+        await bot.sendMessage(message.chat.id, `Unknown command for me`, {
+          reply_markup: {
+            keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],
+            resize_keyboard: true,
+            one_time_keyboard: true,
+          },
+        });
+
+        transition = BotTransitions.BACK_TO_START;
+      }
+
       botStates[message.chat.id].stateMachine.send(transition);
 
-      const newState: BotStates = botStates[message.chat.id].stateMachine.state.value;
+      let newState: BotStates;
 
-      stateActions[newState](
-        botStates[message.chat.id].botActions,
-        message,
-        botStates[message.chat.id].stateMachine
-      );
+      do {
+        newState = botStates[message.chat.id].stateMachine.state.value;
+
+        await stateActions[newState](
+          botStates[message.chat.id].botActions,
+          message,
+          botStates[message.chat.id].stateMachine
+        );
+
+      } while (newState !== botStates[message.chat.id].stateMachine.state.value);
     } catch (error) {
       console.error('Error while handling coin data command:', error);
+      if (botStates[message.chat.id]) {
+        botStates[message.chat.id].stateMachine.send(BotTransitions.BACK_TO_START);
+      }
       bot.sendMessage(message.chat.id, `I'm sorry, something happens during processing...`, {
         reply_markup: {
           keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],

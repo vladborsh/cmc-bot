@@ -133,10 +133,11 @@ export class TelegramBotActions {
         console.log(e);
       }
     }
+
+    console.log('renderCryptoCharts end')
     if (count === 0) {
       await this.bot.sendMessage(chatId, `Looks like those currency are not present on Binance`);
     }
-    this.askAboutNews(chatId);
   }
 
   async selectNews(chatId: number) {
@@ -192,15 +193,10 @@ export class TelegramBotActions {
       );
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `DXY price chart` });
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `SNP 500 price chart` });
-      await this.bot.sendMessage(chatId, `What else I can do for you?`, {
-        reply_markup: this.defaultMarkup,
-      });
     } catch (e) {
       console.error(`error during chart indices chart generation`);
       console.log(e);
-      await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`, {
-        reply_markup: this.defaultMarkup,
-      });
+      await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`);
     }
   }
 }

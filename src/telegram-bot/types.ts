@@ -6,4 +6,4 @@ export type BotStateHandler = (
   actions: TelegramBotActions,
   message: TelegramBot.Message,
   state: StateMachine.Service<any, any>
-) => void;
+) => Promise<void>;
