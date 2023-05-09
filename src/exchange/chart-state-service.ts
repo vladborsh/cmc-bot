@@ -1,12 +1,10 @@
 import { BinanceClient } from './binance-client';
 import { CandleChartInterval_LT } from 'binance-api-node';
-import { Subject,Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 import { takeUntil, filter, map, startWith } from 'rxjs/operators';
 import { omit } from 'lodash';
-import { SymbolState } from './interfaces/symbol-state.interface';
-import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
+import { SymbolState } from '../interfaces/charts/symbol-state.interface';
 
-type ChartScript = (data: CandlestickChartData[]) => void;
 
 export class SymbolStateService {
   record: Record<string, SymbolState> = {};

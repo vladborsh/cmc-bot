@@ -1,6 +1,6 @@
 # Stage 1: Build
 # Use Node.js image
-FROM node:16.13.0 AS build
+FROM node:16.14.0 AS build
 
 # Set the working directory in the Docker image
 WORKDIR /usr/src/app
@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 # Install all dependencies
-RUN npm install
+RUN npm ci
 
 # Copy the rest of your app's source code
 COPY . .
