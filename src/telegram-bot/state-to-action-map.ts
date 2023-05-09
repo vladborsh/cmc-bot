@@ -33,9 +33,11 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
   },
   [BotStates.FETCH_LATEST_NEWS]: async (
     actions: TelegramBotActions,
-    message: TelegramBot.Message
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
   ) => {
     await actions.selectNews(message.chat.id);
+    state.send(BotTransitions.NEWS_SELECTED);
   },
   [BotStates.FETCH_INDICES]: async (
     actions: TelegramBotActions,

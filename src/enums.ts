@@ -10,10 +10,6 @@ export enum BotCommands {
   noDoNotShowNews = 'No, do not show news',
 }
 
-export enum BinanceTimeIntervals {
-  ONE_HOUR = '1h',
-};
-
 export enum CapComTimeIntervals {
   MINUTE = 'MINUTE',
   MINUTE_5 = 'MINUTE_5',

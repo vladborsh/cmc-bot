@@ -3,7 +3,7 @@ import { EnvConfig } from '../env-config';
 import { Requests } from '../requests';
 import { MarketDataMapper } from '../market-data-mapper';
 import { CryptopanicNewsMapper } from '../cryptopanic-news-mapper';
-import { BinanceTimeIntervals, BotCommands, CapComTimeIntervals } from '../enums';
+import { BotCommands, CapComTimeIntervals } from '../enums';
 import { processDayTradingSelectionForMessage } from '../formatting';
 import { BinanceClient } from '../exchange/binance-client';
 import { ChartSnapshot } from '../exchange/chart-snaphot';
@@ -122,11 +122,8 @@ export class TelegramBotActions {
       console.log(`load chart for ${symbol}...`);
 
       try {
-        const rawChart = await binanceClient.getCandles(symbol, BinanceTimeIntervals.ONE_HOUR, 80);
-        const img = await this.chartSnapshot.generateImage(
-          BinanceClient.prepareChartData(rawChart),
-          80
-        );
+        const candles = await binanceClient.getCandles(symbol, '1h', 80);
+        const img = await this.chartSnapshot.generateImage(candles, 80);
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {

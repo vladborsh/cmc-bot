@@ -3,10 +3,13 @@ import Binance, {
   ExchangeInfo,
   CandleChartResult,
   Symbol,
+  Candle,
+  CandleChartInterval_LT,
 } from 'binance-api-node';
 import { EnvConfig } from '../env-config';
 import { CandlestickChartData } from '../interfaces/candlestick-chart-data';
-import { BinanceTimeIntervals } from '../enums';
+import { Observable, Observer } from 'rxjs';
+import { timeIntervalToMillis } from './exchange-helpers';
 
 export class BinanceClient {
   client: BinanceConnect;
@@ -36,10 +39,27 @@ export class BinanceClient {
 
   public async getCandles(
     symbol: string,
-    interval: BinanceTimeIntervals,
+    interval: CandleChartInterval_LT,
     limit: number
-  ): Promise<CandleChartResult[]> {
-    return await this.client.candles({ symbol, interval, limit });
+  ): Promise<CandlestickChartData[]> {
+    const rawCandles = await this.client.candles({ symbol, interval, limit });
+
+    return BinanceClient.mapCandleChartResult(rawCandles);
+  }
+
+  public getCandlesStream(
+    symbol: string,
+    interval: CandleChartInterval_LT
+  ): Observable<CandlestickChartData> {
+    return new Observable((observer: Observer<CandlestickChartData>) => {
+      const clean = this.client.ws.candles(symbol, interval, (candle) =>{
+        if (candle.isFinal) {
+          observer.next(BinanceClient.mapCandle(candle, interval))
+        }
+      });
+
+      return () => clean();
+    });
   }
 
   public static isSymbolExists(symbolToCheck: string): boolean {
@@ -52,8 +72,8 @@ export class BinanceClient {
     );
   }
 
-  public static prepareChartData(chartResult: CandleChartResult[]): CandlestickChartData[] {
-    return chartResult.map<CandlestickChartData>(kline => ({
+  private static mapCandleChartResult(chartResult: CandleChartResult[]): CandlestickChartData[] {
+    return chartResult.map<CandlestickChartData>((kline) => ({
       open: parseFloat(kline.open),
       close: parseFloat(kline.close),
       high: parseFloat(kline.high),
@@ -62,5 +82,16 @@ export class BinanceClient {
       closeTime: kline.closeTime,
       volume: parseFloat(kline.volume),
     }));
+  }
+
+  private static mapCandle(candle: Candle, interval: CandleChartInterval_LT): CandlestickChartData {
+    return {
+      open: parseFloat(candle.open),
+      close: parseFloat(candle.close),
+      high: parseFloat(candle.high),
+      low: parseFloat(candle.low),
+      openTime: Date.now() - timeIntervalToMillis(interval),
+      volume: parseFloat(candle.volume),
+    };
   }
 }
