@@ -123,7 +123,7 @@ export class TelegramBotActions {
 
       try {
         const candles = await binanceClient.getCandles(symbol, '1h', 80);
-        const img = await this.chartSnapshot.generateImage(candles, 80);
+        const img = this.chartSnapshot.generateImage(candles);
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -187,12 +187,10 @@ export class TelegramBotActions {
 
       const imgSNP = await this.chartSnapshot.generateImage(
         CapitalComClient.prepareChartData(marketDataSNP),
-        80
       );
 
       const imgDXY = await this.chartSnapshot.generateImage(
         CapitalComClient.prepareChartData(marketData),
-        80
       );
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `DXY price chart` });
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `SNP 500 price chart` });

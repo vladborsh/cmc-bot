@@ -4,7 +4,7 @@ import { EnvConfig } from '../env-config';
 import { DynamicConfig } from '../dynamic-config';
 import { TelegramBotActions } from './telegram-bot-actions';
 import { createBotState } from './state-machine';
-import { BotStates, BotCommands, BotTransitions } from '../enums';
+import { BotStates, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-configs';
 

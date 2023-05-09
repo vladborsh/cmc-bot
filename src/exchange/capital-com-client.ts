@@ -6,7 +6,7 @@ import {
   CapComMarketData,
   SessionKeys,
 } from '../interfaces/capital-com.interfaces';
-import { CandlestickChartData } from '../interfaces/candlestick-chart-data';
+import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { CapComTimeIntervals } from '../enums';
 import { chop } from '../formatting';
 

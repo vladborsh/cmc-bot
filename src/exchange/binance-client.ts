@@ -7,7 +7,7 @@ import Binance, {
   CandleChartInterval_LT,
 } from 'binance-api-node';
 import { EnvConfig } from '../env-config';
-import { CandlestickChartData } from '../interfaces/candlestick-chart-data';
+import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { Observable, Observer } from 'rxjs';
 import { timeIntervalToMillis } from './exchange-helpers';
 
