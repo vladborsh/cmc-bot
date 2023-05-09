@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { TelegramBotActions } from "./telegram-bot-helpers";
+import { TelegramBotActions } from "./telegram-bot-actions";
 import { StateMachine } from '@xstate/fsm';
 
 export type BotStateHandler = (

@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { StateMachine } from '@xstate/fsm';
 import { EnvConfig } from '../env-config';
 import { DynamicConfig } from '../dynamic-config';
-import { TelegramBotActions } from './telegram-bot-helpers';
+import { TelegramBotActions } from './telegram-bot-actions';
 import { createBotState } from './state-machine';
 import { BotStates, BotCommands, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
@@ -17,7 +17,6 @@ const botStates: Record<string, BotState> = {};
 
 async function getBotState(
   envConfig: EnvConfig,
-  dynamicConfig: DynamicConfig,
   bot: TelegramBot
 ): Promise<BotState> {
   const dynamicValues = await DynamicConfig.getInstance(envConfig).getConfig();
@@ -44,7 +43,7 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
     }
 
     if (!botStates[message.chat.id]) {
-      botStates[message.chat.id] = await getBotState(envConfig, dynamicConfig, bot);
+      botStates[message.chat.id] = await getBotState(envConfig, bot);
     }
 
     if (message.text === '/start') {
@@ -60,13 +59,11 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
       if (!transition) {
-        await bot.sendMessage(message.chat.id, `Unknown command for me`, {
-          reply_markup: {
-            keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],
-            resize_keyboard: true,
-            one_time_keyboard: true,
-          },
-        });
+        await bot.sendMessage(
+          message.chat.id,
+          `Unknown command for me`,
+          TelegramBotActions.defaultReplyMarkup
+        );
 
         transition = BotTransitions.BACK_TO_START;
       }
@@ -83,20 +80,17 @@ export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfi
           message,
           botStates[message.chat.id].stateMachine
         );
-
       } while (newState !== botStates[message.chat.id].stateMachine.state.value);
     } catch (error) {
       console.error('Error while handling coin data command:', error);
       if (botStates[message.chat.id]) {
         botStates[message.chat.id].stateMachine.send(BotTransitions.BACK_TO_START);
       }
-      bot.sendMessage(message.chat.id, `I'm sorry, something happens during processing...`, {
-        reply_markup: {
-          keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],
-          resize_keyboard: true,
-          one_time_keyboard: true,
-        },
-      });
+      bot.sendMessage(
+        message.chat.id,
+        `I'm sorry, something happens during processing...`,
+        TelegramBotActions.defaultReplyMarkup
+      );
     }
   });
 }

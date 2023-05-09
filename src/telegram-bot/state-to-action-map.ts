@@ -1,7 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { StateMachine } from '@xstate/fsm';
 import { BotStates, BotTransitions } from "../enums";
-import { TelegramBotActions } from "./telegram-bot-helpers";
+import { TelegramBotActions } from "./telegram-bot-actions";
 import { BotStateHandler } from "./types";
 
 export const stateActions: Record<BotStates, BotStateHandler> = {
