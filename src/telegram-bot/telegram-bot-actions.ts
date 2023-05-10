@@ -11,6 +11,7 @@ import { CapitalComClient } from '../exchange/capital-com-client';
 import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
 import { MappedListing } from '../interfaces/mapped-listing.interface';
 import { ReplyMarkup } from './interfaces/reply-markup';
+import { EMACrossUpIndicator } from '../indicators/ema-crossup-indicator';
 
 export class TelegramBotActions {
   marketDataMapper: MarketDataMapper;
@@ -123,7 +124,8 @@ export class TelegramBotActions {
 
       try {
         const candles = await binanceClient.getCandles(symbol, '1h', 80);
-        const img = this.chartSnapshot.generateImage(candles);
+        const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
+        const img = this.chartSnapshot.generateImage(candles, plotshapes, plots);
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -183,17 +185,14 @@ export class TelegramBotActions {
 
     try {
       const marketDataSNP = await capitalComClient.getSNP(session, CapComTimeIntervals.HOUR, 80);
-      const marketData = await capitalComClient.getDXY(session, CapComTimeIntervals.HOUR, 80);
+      const [plotshapesSNP, plotsSNP] = EMACrossUpIndicator(marketDataSNP, 15);
+      const imgSNP = this.chartSnapshot.generateImage(marketDataSNP, plotshapesSNP, plotsSNP);
+      await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
 
-      const imgSNP = await this.chartSnapshot.generateImage(
-        CapitalComClient.prepareChartData(marketDataSNP),
-      );
-
-      const imgDXY = await this.chartSnapshot.generateImage(
-        CapitalComClient.prepareChartData(marketData),
-      );
-      await this.bot.sendPhoto(chatId, imgSNP, { caption: `DXY price chart` });
-      await this.bot.sendPhoto(chatId, imgDXY, { caption: `SNP 500 price chart` });
+      const marketDataDXY = await capitalComClient.getDXY(session, CapComTimeIntervals.HOUR, 80);
+      const [plotshapesDXY, plotsDXY] = EMACrossUpIndicator(marketDataDXY, 15);
+      const imgDXY = this.chartSnapshot.generateImage(marketDataDXY, plotshapesDXY, plotsDXY);
+      await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });
     } catch (e) {
       console.error(`error during chart indices chart generation`);
       console.log(e);

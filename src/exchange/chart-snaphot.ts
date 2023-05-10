@@ -4,6 +4,9 @@ import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-dat
 import { PlotShape } from '../interfaces/charts/plot-shape.interface';
 import { Plot } from '../interfaces/charts/plot.interface';
 
+const UP_CANDLE_COLOR = '#57b36a';
+const DOWN_CANDLE_COLOR = '#b35764';
+
 export class ChartSnapshot {
   canvasWidth = 800;
   canvasHeight = 600;
@@ -30,19 +33,33 @@ export class ChartSnapshot {
 
     candles.forEach((kline: CandlestickChartData, index: number) => {
       this.renderCandle(kline, index, priceRange, minPrice, ctx);
-      if (plotShapes) {
-        plotShapes.forEach(plotShape => {
-          if (plotShape.values[index]) {
-            this.renderSimpleShape(kline, index, priceRange, minPrice, plotShape.color, ctx);
-          }
-        })
-      }
     });
 
+    if (plotShapes) {
+      plotShapes.forEach((plotShape) => {
+        this.renderSimpleShape(
+          candles.length - plotShape.values.length,
+          candles,
+          plotShape.values,
+          priceRange,
+          minPrice,
+          plotShape.color,
+          ctx
+        );
+      });
+    }
+
     if (plots) {
-      plots.forEach(plot => {
-        this.renderPlot(candles.length - plot.values.length, plot.values, priceRange, minPrice, plot.color, ctx);
-      })
+      plots.forEach((plot) => {
+        this.renderPlot(
+          candles.length - plot.values.length,
+          plot.values,
+          priceRange,
+          minPrice,
+          plot.color,
+          ctx
+        );
+      });
     }
 
     this.renderPriceScale(maxPrice, priceStep, ctx);
@@ -63,8 +80,8 @@ export class ChartSnapshot {
     ctx.beginPath();
 
     for (let i = shift; i < plot.length + shift; i++) {
-      const x = this.candleWidth*shift + i * (this.candleWidth + this.padding);
-      const y = (1 - (plot[i] - minPrice) / priceRange) * this.canvasHeight;
+      const x = i * (this.candleWidth + this.padding);
+      const y = (1 - (plot[i-shift] - minPrice) / priceRange) * this.canvasHeight;
       if (i === shift) {
         ctx.moveTo(x, y);
       } else {
@@ -76,20 +93,25 @@ export class ChartSnapshot {
   }
 
   private renderSimpleShape(
-    kline: CandlestickChartData,
-    index: number,
+    shift: number,
+    candles: CandlestickChartData[],
+    plotShape: boolean[],
     priceRange: number,
     minPrice: number,
     color: string,
     ctx: CanvasRenderingContext2D
   ) {
-    const high = kline.high;
-    const distanceFromCandle = 10;
+    for (let i = shift; i < plotShape.length + shift; i++) {
+      if (plotShape[i-shift]) {
+        const high = candles[i + 1].high;
+        const distanceFromCandle = 10;
 
-    const x = index * (this.candleWidth + this.padding);
-    const y = (1 - (high - minPrice) / priceRange) * this.canvasHeight - distanceFromCandle;
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, this.candleWidth, this.candleWidth);
+        const x = (i + 1) * (this.candleWidth + this.padding);
+        const y = (1 - (high - minPrice) / priceRange) * this.canvasHeight - distanceFromCandle;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, this.candleWidth, this.candleWidth);
+      }
+    }
   }
 
   private renderCandle(
@@ -108,7 +130,7 @@ export class ChartSnapshot {
     const bodyHeight = (Math.abs(open - close) / priceRange) * this.canvasHeight;
     const wickHeight = ((high - low) / priceRange) * this.canvasHeight;
 
-    const color = close >= open ? 'green' : 'red';
+    const color = close >= open ? UP_CANDLE_COLOR : DOWN_CANDLE_COLOR;
 
     // draw body
     const bodyY =

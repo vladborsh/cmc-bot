@@ -46,7 +46,7 @@ export class CapitalComClient {
     };
   }
 
-  async getDXY(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CapComMarketData> {
+  async getDXY(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CandlestickChartData[]> {
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}/prices/DXY`,
       {
@@ -63,10 +63,10 @@ export class CapitalComClient {
       }
     );
 
-    return marketResponse.data;
+    return CapitalComClient.prepareChartData(marketResponse.data);
   }
 
-  async getSNP(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CapComMarketData> {
+  async getSNP(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CandlestickChartData[]> {
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}/prices/US500`,
       {
@@ -83,7 +83,7 @@ export class CapitalComClient {
       }
     );
 
-    return marketResponse.data;
+    return CapitalComClient.prepareChartData(marketResponse.data);
   }
 
   static prepareChartData(rawData: CapComMarketData): CandlestickChartData[] {
