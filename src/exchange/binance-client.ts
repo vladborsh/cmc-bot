@@ -9,7 +9,7 @@ import Binance, {
 import { EnvConfig } from '../env-config';
 import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { Observable, Observer } from 'rxjs';
-import { timeIntervalToMillis } from './exchange-helpers';
+import { timeIntervalBinanceToMillis } from './exchange-helpers';
 
 export class BinanceClient {
   client: BinanceConnect;
@@ -90,7 +90,7 @@ export class BinanceClient {
       close: parseFloat(candle.close),
       high: parseFloat(candle.high),
       low: parseFloat(candle.low),
-      openTime: Date.now() - timeIntervalToMillis(interval),
+      openTime: Date.now() - timeIntervalBinanceToMillis(interval),
       volume: parseFloat(candle.volume),
     };
   }

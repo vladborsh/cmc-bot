@@ -9,6 +9,7 @@ import {
 import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { CapComTimeIntervals } from '../enums';
 import { chop } from '../formatting';
+import { timeIntervalCapComToMillis } from './exchange-helpers';
 
 export class CapitalComClient {
   constructor(private envConfig: EnvConfig) {}
@@ -46,7 +47,13 @@ export class CapitalComClient {
     };
   }
 
-  async getDXY(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CandlestickChartData[]> {
+  async getDXY(
+    session: SessionKeys,
+    interval: CapComTimeIntervals,
+    limit: number
+  ): Promise<CandlestickChartData[]> {
+    const [from, to] = CapitalComClient.getFromToDate(interval, limit);
+
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}/prices/DXY`,
       {
@@ -56,8 +63,8 @@ export class CapitalComClient {
         },
         params: {
           resolution: interval,
-          from: chop(startOfDay(subDays(new Date(), 30)).toISOString()),
-          to: chop(new Date().toISOString()),
+          from,
+          to,
           max: limit,
         },
       }
@@ -66,7 +73,13 @@ export class CapitalComClient {
     return CapitalComClient.prepareChartData(marketResponse.data);
   }
 
-  async getSNP(session: SessionKeys, interval: CapComTimeIntervals, limit: number): Promise<CandlestickChartData[]> {
+  async getSNP(
+    session: SessionKeys,
+    interval: CapComTimeIntervals,
+    limit: number
+  ): Promise<CandlestickChartData[]> {
+    const [from, to] = CapitalComClient.getFromToDate(interval, limit);
+
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}/prices/US500`,
       {
@@ -76,8 +89,8 @@ export class CapitalComClient {
         },
         params: {
           resolution: interval,
-          from: chop(startOfDay(subDays(new Date(), 30)).toISOString()),
-          to: chop(new Date().toISOString()),
+          from,
+          to,
           max: limit,
         },
       }
@@ -95,5 +108,13 @@ export class CapitalComClient {
       close: (candle.closePrice.ask + candle.closePrice.ask) / 2,
       volume: candle.lastTradedVolume,
     }));
+  }
+
+  static getFromToDate(interval: CapComTimeIntervals, limit: number): [string, string] {
+    const timeBackShift = limit * timeIntervalCapComToMillis(interval);
+    const fromDate = chop(new Date(Date.now() - timeBackShift).toISOString());
+    const toDate = chop(new Date().toISOString());
+
+    return [fromDate, toDate];
   }
 }

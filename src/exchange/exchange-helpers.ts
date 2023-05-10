@@ -1,6 +1,7 @@
 import { CandleChartInterval_LT } from 'binance-api-node';
+import { CapComTimeIntervals } from '../enums';
 
-const intervalMapping: Record<CandleChartInterval_LT, number> = {
+const intervalMappingBinance: Record<CandleChartInterval_LT, number> = {
   '1m': 1 * 60 * 1000,
   '3m': 3 * 60 * 1000,
   '5m': 5 * 60 * 1000,
@@ -18,6 +19,22 @@ const intervalMapping: Record<CandleChartInterval_LT, number> = {
   '1M': 1 * 30 * 24 * 60 * 60 * 1000,
 };
 
-export function timeIntervalToMillis(interval: CandleChartInterval_LT): number {
-  return intervalMapping[interval];
+const intervalMappingCapCom: Record<CapComTimeIntervals, number> = {
+  [CapComTimeIntervals.MINUTE]: 1 * 60 * 1000,
+  [CapComTimeIntervals.MINUTE_5]: 5 * 60 * 1000,
+  [CapComTimeIntervals.MINUTE_15]: 15 * 60 * 1000,
+  [CapComTimeIntervals.MINUTE_30]: 30 * 60 * 1000,
+  [CapComTimeIntervals.HOUR]: 1 * 60 * 60 * 1000,
+  [CapComTimeIntervals.HOUR_4]: 4 * 60 * 60 * 1000,
+  [CapComTimeIntervals.DAY]: 1 * 24 * 60 * 60 * 1000,
+  [CapComTimeIntervals.WEEK]: 1 * 7 * 24 * 60 * 60 * 1000,
+};
+
+export function timeIntervalBinanceToMillis(interval: CandleChartInterval_LT): number {
+  return intervalMappingBinance[interval];
+}
+
+
+export function timeIntervalCapComToMillis(interval: CapComTimeIntervals): number {
+  return intervalMappingCapCom[interval];
 }
