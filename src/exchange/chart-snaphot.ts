@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { PlotShape } from '../interfaces/charts/plot-shape.interface';
 import { Plot } from '../interfaces/charts/plot.interface';
-import { PlotLine } from '../interfaces/charts/plot-line';
+import { PlotLine, PlotLineStyle } from '../interfaces/charts/plot-line';
 
 const UP_CANDLE_COLOR = '#57b36a';
 const DOWN_CANDLE_COLOR = '#b35764';
@@ -97,11 +97,16 @@ export class ChartSnapshot {
     const y1 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
     const y2 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
 
+    if (plotLine.style === PlotLineStyle.Dashed) {
+      ctx.setLineDash([3, 2]);
+    }
     ctx.strokeStyle = plotLine.color || '#666666';
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
+    /* Unset line dash */
+    ctx.setLineDash([]);
   }
 
   private renderPlot(

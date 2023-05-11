@@ -4,4 +4,10 @@ export interface PlotLine {
   x2: number;
   y2: number;
   color?: string;
+  style?: PlotLineStyle;
+}
+
+export enum PlotLineStyle{
+  Solid,
+  Dashed,
 }
