@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
 import { PlotShape } from '../interfaces/charts/plot-shape.interface';
 import { Plot } from '../interfaces/charts/plot.interface';
+import { PlotLine } from '../interfaces/charts/plot-line';
 
 const UP_CANDLE_COLOR = '#57b36a';
 const DOWN_CANDLE_COLOR = '#b35764';
@@ -10,19 +11,25 @@ const DOWN_CANDLE_COLOR = '#b35764';
 export class ChartSnapshot {
   canvasWidth = 800;
   canvasHeight = 600;
-  candleWidth = 6;
-  padding = 2;
+  candleWidth = 4;
+  padding = 1;
   scalePaddingLeft = 10;
   scaleWidth = 50;
   scaleHeight = this.canvasHeight - 20;
   scaleStep = 10;
+  defaultPlotColor = '#666666';
 
   /**
    * @param candles
    * @param plotshapes - arrayOfOpenTime where to draw shape (for markup purposes)
    * @returns
    */
-  generateImage(candles: CandlestickChartData[], plotShapes?: PlotShape[], plots?: Plot[]): Buffer {
+  generateImage(
+    candles: CandlestickChartData[],
+    plotShapes?: PlotShape[],
+    plots?: Plot[],
+    plotLines?: PlotLine[]
+  ): Buffer {
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
 
@@ -43,7 +50,7 @@ export class ChartSnapshot {
           plotShape.values,
           priceRange,
           minPrice,
-          plotShape.color,
+          plotShape.color || this.defaultPlotColor,
           ctx
         );
       });
@@ -56,8 +63,19 @@ export class ChartSnapshot {
           plot.values,
           priceRange,
           minPrice,
-          plot.color,
+          plot.color || this.defaultPlotColor,
           ctx
+        );
+      });
+    }
+
+    if (plotLines) {
+      plotLines.forEach((plotLine) => {
+        this.renderPlotLine(
+          plotLine,
+          priceRange,
+          minPrice,
+          ctx,
         );
       });
     }
@@ -66,6 +84,24 @@ export class ChartSnapshot {
     this.renderDatetimeLabels(candles, candles.length, ctx);
 
     return canvas.toBuffer('image/png');
+  }
+
+  private renderPlotLine(
+    plotLine: PlotLine,
+    priceRange: number,
+    minPrice: number,
+    ctx: CanvasRenderingContext2D
+  ) {
+    const x1 = plotLine.x1 * (this.candleWidth + this.padding);
+    const x2 = plotLine.x2 * (this.candleWidth + this.padding);
+    const y1 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
+    const y2 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
+
+    ctx.strokeStyle = plotLine.color || '#666666';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
   }
 
   private renderPlot(
@@ -81,7 +117,7 @@ export class ChartSnapshot {
 
     for (let i = shift; i < plot.length + shift; i++) {
       const x = i * (this.candleWidth + this.padding);
-      const y = (1 - (plot[i-shift] - minPrice) / priceRange) * this.canvasHeight;
+      const y = (1 - (plot[i - shift] - minPrice) / priceRange) * this.canvasHeight;
       if (i === shift) {
         ctx.moveTo(x, y);
       } else {
@@ -102,11 +138,11 @@ export class ChartSnapshot {
     ctx: CanvasRenderingContext2D
   ) {
     for (let i = shift; i < plotShape.length + shift; i++) {
-      if (plotShape[i-shift]) {
-        const high = candles[i + 1].high;
+      if (plotShape[i - shift]) {
+        const high = candles[i].high;
         const distanceFromCandle = 10;
 
-        const x = (i + 1) * (this.candleWidth + this.padding);
+        const x = (i) * (this.candleWidth + this.padding);
         const y = (1 - (high - minPrice) / priceRange) * this.canvasHeight - distanceFromCandle;
         ctx.fillStyle = color;
         ctx.fillRect(x, y, this.candleWidth, this.candleWidth);

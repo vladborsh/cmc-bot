@@ -1,6 +1,6 @@
 export interface PlotShape {
   values: boolean[];
-  color: string;
+  color?: string;
   title?: string;
   location?: ShapeLocation;
 }

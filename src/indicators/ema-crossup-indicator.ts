@@ -6,6 +6,12 @@ import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-dat
 const PLOT_SHAPE_DEF_COLOR = '#3492eb';
 const PLOT_DEF_COLOR = '#9e34eb';
 
+/**
+ * @example
+ * const candles = await binanceClient.getCandles(symbol, '1h', 80);
+ * const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
+ * const img = chartSnapshot.generateImage(candles, plotshapes, plots);
+ */
 export function EMACrossUpIndicator(chartData: CandlestickChartData[], emaLength: number): [PlotShape[], Plot[]] {
   const ema = EMA.calculate({
     values: chartData.map((candle) => candle.close),
