@@ -6,7 +6,7 @@ import {
   CapComMarketData,
   SessionKeys,
 } from '../interfaces/capital-com.interfaces';
-import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
+import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { CapComTimeIntervals } from '../enums';
 import { chop } from '../formatting';
 import { timeIntervalCapComToMillis } from './exchange-helpers';
@@ -51,7 +51,7 @@ export class CapitalComClient {
     session: SessionKeys,
     interval: CapComTimeIntervals,
     limit: number
-  ): Promise<CandlestickChartData[]> {
+  ): Promise<CandleChartData[]> {
     const [from, to] = CapitalComClient.getFromToDate(interval, limit);
 
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
@@ -77,7 +77,7 @@ export class CapitalComClient {
     session: SessionKeys,
     interval: CapComTimeIntervals,
     limit: number
-  ): Promise<CandlestickChartData[]> {
+  ): Promise<CandleChartData[]> {
     const [from, to] = CapitalComClient.getFromToDate(interval, limit);
 
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
@@ -99,8 +99,8 @@ export class CapitalComClient {
     return CapitalComClient.prepareChartData(marketResponse.data);
   }
 
-  static prepareChartData(rawData: CapComMarketData): CandlestickChartData[] {
-    return rawData.prices.map<CandlestickChartData>((candle) => ({
+  static prepareChartData(rawData: CapComMarketData): CandleChartData[] {
+    return rawData.prices.map<CandleChartData>((candle) => ({
       openTime: Date.parse(candle.snapshotTime),
       open: (candle.openPrice.ask + candle.openPrice.ask) / 2,
       high: (candle.highPrice.ask + candle.highPrice.ask) / 2,

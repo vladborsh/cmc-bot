@@ -90,7 +90,7 @@ export class TelegramBotActions {
     await this.bot.sendMessage(chatId, processDayTradingSelectionForMessage(selection), {
       parse_mode: 'MarkdownV2',
     });
-    await this.bot.sendMessage(chatId, `Shell I draw those charts?`, {
+    await this.bot.sendMessage(chatId, `Shall I draw those charts?`, {
       reply_markup: {
         keyboard: [[{ text: BotCommands.yesDrawCharts }, { text: BotCommands.noDoNotDraw }]],
         resize_keyboard: true,

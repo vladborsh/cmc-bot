@@ -1,4 +1,4 @@
-export interface CandlestickChartData {
+export interface CandleChartData {
   openTime: number;
   closeTime?: number;
   open: number;

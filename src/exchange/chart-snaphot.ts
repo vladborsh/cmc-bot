@@ -1,6 +1,6 @@
 import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 import { format } from 'date-fns';
-import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
+import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { PlotShape } from '../interfaces/charts/plot-shape.interface';
 import { Plot } from '../interfaces/charts/plot.interface';
 import { PlotLine, PlotLineStyle } from '../interfaces/charts/plot-line';
@@ -25,7 +25,7 @@ export class ChartSnapshot {
    * @returns
    */
   generateImage(
-    candles: CandlestickChartData[],
+    candles: CandleChartData[],
     plotShapes?: PlotShape[],
     plots?: Plot[],
     plotLines?: PlotLine[]
@@ -33,12 +33,12 @@ export class ChartSnapshot {
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    const maxPrice = Math.max(...candles.map((kline: CandlestickChartData) => kline.high));
-    const minPrice = Math.min(...candles.map((kline: CandlestickChartData) => kline.low));
+    const maxPrice = Math.max(...candles.map((kline: CandleChartData) => kline.high));
+    const minPrice = Math.min(...candles.map((kline: CandleChartData) => kline.low));
     const priceRange = maxPrice - minPrice;
     const priceStep = priceRange / this.scaleStep;
 
-    candles.forEach((kline: CandlestickChartData, index: number) => {
+    candles.forEach((kline: CandleChartData, index: number) => {
       this.renderCandle(kline, index, priceRange, minPrice, ctx);
     });
 
@@ -135,7 +135,7 @@ export class ChartSnapshot {
 
   private renderSimpleShape(
     shift: number,
-    candles: CandlestickChartData[],
+    candles: CandleChartData[],
     plotShape: boolean[],
     priceRange: number,
     minPrice: number,
@@ -156,7 +156,7 @@ export class ChartSnapshot {
   }
 
   private renderCandle(
-    kline: CandlestickChartData,
+    kline: CandleChartData,
     index: number,
     priceRange: number,
     minPrice: number,
@@ -204,13 +204,13 @@ export class ChartSnapshot {
   }
 
   private renderDatetimeLabels(
-    candles: CandlestickChartData[],
+    candles: CandleChartData[],
     limit: number,
     ctx: CanvasRenderingContext2D
   ) {
     const labelStep = Math.ceil(limit / 5); // value to control the number of labels displayed
 
-    candles.forEach((kline: CandlestickChartData, index: number) => {
+    candles.forEach((kline: CandleChartData, index: number) => {
       if (index % labelStep === 0) {
         const timestamp = kline.openTime;
         const date = new Date(timestamp);

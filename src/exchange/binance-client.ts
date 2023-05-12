@@ -7,7 +7,7 @@ import Binance, {
   CandleChartInterval_LT,
 } from 'binance-api-node';
 import { EnvConfig } from '../env-config';
-import { CandlestickChartData } from '../interfaces/charts/candlestick-chart-data';
+import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { Observable, Observer } from 'rxjs';
 import { timeIntervalBinanceToMillis } from './exchange-helpers';
 
@@ -41,7 +41,7 @@ export class BinanceClient {
     symbol: string,
     interval: CandleChartInterval_LT,
     limit: number
-  ): Promise<CandlestickChartData[]> {
+  ): Promise<CandleChartData[]> {
     const rawCandles = await this.client.candles({ symbol, interval, limit });
 
     return BinanceClient.mapCandleChartResult(rawCandles);
@@ -50,8 +50,8 @@ export class BinanceClient {
   public getCandlesStream(
     symbol: string,
     interval: CandleChartInterval_LT
-  ): Observable<CandlestickChartData> {
-    return new Observable((observer: Observer<CandlestickChartData>) => {
+  ): Observable<CandleChartData> {
+    return new Observable((observer: Observer<CandleChartData>) => {
       const clean = this.client.ws.candles(symbol, interval, (candle) =>{
         if (candle.isFinal) {
           observer.next(BinanceClient.mapCandle(candle, interval))
@@ -72,8 +72,8 @@ export class BinanceClient {
     );
   }
 
-  private static mapCandleChartResult(chartResult: CandleChartResult[]): CandlestickChartData[] {
-    return chartResult.map<CandlestickChartData>((kline) => ({
+  private static mapCandleChartResult(chartResult: CandleChartResult[]): CandleChartData[] {
+    return chartResult.map<CandleChartData>((kline) => ({
       open: parseFloat(kline.open),
       close: parseFloat(kline.close),
       high: parseFloat(kline.high),
@@ -84,7 +84,7 @@ export class BinanceClient {
     }));
   }
 
-  private static mapCandle(candle: Candle, interval: CandleChartInterval_LT): CandlestickChartData {
+  private static mapCandle(candle: Candle, interval: CandleChartInterval_LT): CandleChartData {
     return {
       open: parseFloat(candle.open),
       close: parseFloat(candle.close),
