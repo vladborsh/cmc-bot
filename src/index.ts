@@ -20,7 +20,7 @@ const dynamicConfig = DynamicConfig.getInstance(envConfig);
 setupPortListener(envConfig);
 
 if (isBotEnabled) {
-  runTelegramBot(envConfig, dynamicConfig);
+  runTelegramBot(envConfig);
 } else {
   getMarketSelection(BotCommands.volume24h, dynamicConfig, envConfig);
 }

@@ -97,7 +97,7 @@ export class ChartSnapshot {
     const y1 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
     const y2 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
 
-    if (plotLine.style === PlotLineStyle.Dashed) {
+    if (plotLine.style === PlotLineStyle.DASHED) {
       ctx.setLineDash([3, 2]);
     }
     ctx.strokeStyle = plotLine.color || '#666666';

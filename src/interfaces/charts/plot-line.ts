@@ -8,6 +8,6 @@ export interface PlotLine {
 }
 
 export enum PlotLineStyle{
-  Solid,
-  Dashed,
+  SOLID = 'SOLID',
+  DASHED = 'DASHED',
 }

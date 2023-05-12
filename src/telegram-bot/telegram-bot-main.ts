@@ -7,6 +7,7 @@ import { createBotState } from './state-machine';
 import { BotStates, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-configs';
+import { TechIndicatorService } from '../indicators/tech-indicator-service';
 
 interface BotState {
   botActions: TelegramBotActions;
@@ -15,10 +16,7 @@ interface BotState {
 
 const botStates: Record<string, BotState> = {};
 
-async function getBotState(
-  envConfig: EnvConfig,
-  bot: TelegramBot
-): Promise<BotState> {
+async function getBotState(envConfig: EnvConfig, bot: TelegramBot): Promise<BotState> {
   const dynamicValues = await DynamicConfig.getInstance(envConfig).getConfig();
   const stateMachine = createBotState();
   const botActions = new TelegramBotActions(bot, envConfig, dynamicValues);
@@ -27,11 +25,22 @@ async function getBotState(
   return { stateMachine, botActions };
 }
 
-export function runTelegramBot(envConfig: EnvConfig, dynamicConfig: DynamicConfig) {
+async function techIndicatorServiceHealthCheck(envConfig: EnvConfig) {
+  const techIndicator = TechIndicatorService.getInstance(envConfig);
+  const healthy = await techIndicator.health();
+
+  console.info(`[INFO] tech-indicator-service health: ${healthy}`);
+
+  return healthy;
+}
+
+export async function runTelegramBot(envConfig: EnvConfig) {
   if (!envConfig.TG_TOKEN) {
     console.error('TG token was not provided');
     return;
   }
+
+  await techIndicatorServiceHealthCheck(envConfig);
 
   const bot = new TelegramBot(envConfig.TG_TOKEN, { polling: true });
 
