@@ -106,10 +106,12 @@ export class ChartSnapshot {
     const x1 = plotLine.x1 * (this.candleWidth + this.padding);
     const x2 = plotLine.x2 * (this.candleWidth + this.padding);
     const y1 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
-    const y2 = (1 - (plotLine.y1 - minPrice) / priceRange) * this.canvasHeight;
+    const y2 = (1 - (plotLine.y2 - minPrice) / priceRange) * this.canvasHeight;
 
     if (plotLine.style === PlotLineStyle.DASHED) {
       ctx.setLineDash([3, 2]);
+    } else if (plotLine.style === PlotLineStyle.DOTTED) {
+      ctx.setLineDash([1, 1]);
     }
     ctx.strokeStyle = plotLine.color || '#666666';
     ctx.beginPath();
