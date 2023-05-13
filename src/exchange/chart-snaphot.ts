@@ -1,7 +1,7 @@
 import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 import { format } from 'date-fns';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { PlotShape } from '../interfaces/charts/plot-shape.interface';
+import { PlotShape, ShapeLocation } from '../interfaces/charts/plot-shape.interface';
 import { Plot } from '../interfaces/charts/plot.interface';
 import { PlotLine, PlotLineStyle } from '../interfaces/charts/plot-line';
 
@@ -9,8 +9,8 @@ const UP_CANDLE_COLOR = '#57b36a';
 const DOWN_CANDLE_COLOR = '#b35764';
 
 export class ChartSnapshot {
-  canvasWidth = 800;
-  canvasHeight = 600;
+  canvasWidth = 1200;
+  canvasHeight = 1000;
   candleWidth = 4;
   padding = 1;
   scalePaddingLeft = 10;
@@ -18,6 +18,7 @@ export class ChartSnapshot {
   scaleHeight = this.canvasHeight - 20;
   scaleStep = 10;
   defaultPlotColor = '#666666';
+  shapeDistanceFromCandle = 15
 
   /**
    * @param candles
@@ -47,10 +48,9 @@ export class ChartSnapshot {
         this.renderSimpleShape(
           candles.length - plotShape.values.length,
           candles,
-          plotShape.values,
+          plotShape,
           priceRange,
           minPrice,
-          plotShape.color || this.defaultPlotColor,
           ctx
         );
       });
@@ -136,20 +136,25 @@ export class ChartSnapshot {
   private renderSimpleShape(
     shift: number,
     candles: CandleChartData[],
-    plotShape: boolean[],
+    plotShape: PlotShape,
     priceRange: number,
     minPrice: number,
-    color: string,
     ctx: CanvasRenderingContext2D
   ) {
-    for (let i = shift; i < plotShape.length + shift; i++) {
-      if (plotShape[i - shift]) {
+    for (let i = shift; i < plotShape.values.length + shift; i++) {
+      if (plotShape.values[i - shift]) {
         const high = candles[i].high;
-        const distanceFromCandle = 10;
+        const low = candles[i].low;
 
         const x = (i) * (this.candleWidth + this.padding);
-        const y = (1 - (high - minPrice) / priceRange) * this.canvasHeight - distanceFromCandle;
-        ctx.fillStyle = color;
+        let y: number;
+        if (plotShape.location === ShapeLocation.ABOVE) {
+          y = (1 - (high - minPrice) / priceRange) * this.canvasHeight - this.shapeDistanceFromCandle;
+        } else {
+          const wickHeight = ((high - low) / priceRange) * this.canvasHeight
+          y = (1 - (high - minPrice) / priceRange) * this.canvasHeight + wickHeight + this.shapeDistanceFromCandle;
+        }
+        ctx.fillStyle = plotShape.color || this.defaultPlotColor;
         ctx.fillRect(x, y, this.candleWidth, this.candleWidth);
       }
     }
