@@ -12,13 +12,16 @@ import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
 import { MappedListing } from '../interfaces/mapped-listing.interface';
 import { ReplyMarkup } from './interfaces/reply-markup';
 import { EMACrossUpIndicator } from '../indicators/ema-crossup-indicator';
+import { DynamoDBClient } from '../db/dynamo-db-client';
+import { TechIndicatorService } from '../indicators/tech-indicator-service';
 
 export class TelegramBotActions {
   marketDataMapper: MarketDataMapper;
   requests: Requests;
   cryptopanicNewsMapper: CryptopanicNewsMapper;
   chartSnapshot: ChartSnapshot;
-  selection: MappedListing[] | undefined;
+  selection: string[] | undefined;
+  private DEFAULT_CANDLE_NUMBER = 700;
 
   static defaultReplyMarkup: ReplyMarkup = {
     reply_markup: {
@@ -31,13 +34,15 @@ export class TelegramBotActions {
   constructor(
     private bot: TelegramBot,
     private envConfig: EnvConfig,
-    dynamicConfig: DynamicConfigValues
+    dynamicConfig: DynamicConfigValues,
+    selection?: string[]
   ) {
     this.bot = bot;
     this.marketDataMapper = new MarketDataMapper(dynamicConfig);
     this.requests = new Requests(envConfig);
     this.cryptopanicNewsMapper = new CryptopanicNewsMapper(dynamicConfig);
     this.chartSnapshot = new ChartSnapshot();
+    this.selection = selection;
   }
 
   public sendInitialMessage(chatId: number) {
@@ -86,7 +91,11 @@ export class TelegramBotActions {
       marketData,
       command.text as BotCommands
     );
-    this.selection = selection;
+    this.selection = selection.map((listing) => listing.symbol);
+    await DynamoDBClient.getInstance(this.envConfig).updateLastSelectedCrypto(
+      chatId.toString(),
+      this.selection
+    );
     await this.bot.sendMessage(chatId, processDayTradingSelectionForMessage(selection), {
       parse_mode: 'MarkdownV2',
     });
@@ -105,12 +114,11 @@ export class TelegramBotActions {
       return;
     }
 
-    const symbolNames = this.selection.map((listing) => `${listing.symbol}USDT`);
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
 
     let count = 0;
 
-    for (let symbol of symbolNames) {
+    for (let symbol of this.selection.map((symbol) => `${symbol}USDT`)) {
       try {
         if (!BinanceClient.isSymbolExists(symbol)) {
           continue;
@@ -123,9 +131,11 @@ export class TelegramBotActions {
       console.log(`load chart for ${symbol}...`);
 
       try {
-        const candles = await binanceClient.getCandles(symbol, '1h', 80);
-        const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
-        const img = this.chartSnapshot.generateImage(candles, plotshapes, plots);
+        const candles = await binanceClient.getCandles(symbol, '1h', this.DEFAULT_CANDLE_NUMBER);
+        const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
+          chartData: candles,
+        });
+        const img = this.chartSnapshot.generateImage(candles, data?.plotShapes,  data?.plots, data?.lines);
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -149,9 +159,7 @@ export class TelegramBotActions {
       return;
     }
 
-    const newsByAsset = await this.requests.getNews(
-      this.selection.map((listing) => listing.symbol)
-    );
+    const newsByAsset = await this.requests.getNews(this.selection);
 
     if (!Object.keys(newsByAsset).length) {
       this.bot.sendMessage(
@@ -184,12 +192,20 @@ export class TelegramBotActions {
     const session = await capitalComClient.startSession();
 
     try {
-      const marketDataSNP = await capitalComClient.getSNP(session, CapComTimeIntervals.HOUR, 80);
+      const marketDataSNP = await capitalComClient.getSNP(
+        session,
+        CapComTimeIntervals.HOUR,
+        this.DEFAULT_CANDLE_NUMBER
+      );
       const [plotshapesSNP, plotsSNP] = EMACrossUpIndicator(marketDataSNP, 15);
       const imgSNP = this.chartSnapshot.generateImage(marketDataSNP, plotshapesSNP, plotsSNP);
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
 
-      const marketDataDXY = await capitalComClient.getDXY(session, CapComTimeIntervals.HOUR, 80);
+      const marketDataDXY = await capitalComClient.getDXY(
+        session,
+        CapComTimeIntervals.HOUR,
+        this.DEFAULT_CANDLE_NUMBER
+      );
       const [plotshapesDXY, plotsDXY] = EMACrossUpIndicator(marketDataDXY, 15);
       const imgDXY = this.chartSnapshot.generateImage(marketDataDXY, plotshapesDXY, plotsDXY);
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });

@@ -1,9 +1,9 @@
 import { createMachine, interpret, StateMachine } from '@xstate/fsm';
 import { BotStates, BotTransitions } from '../enums';
 
-export function createBotState(): StateMachine.Service<any, any> {
+export function createBotState(initial = BotStates.INITIAL): StateMachine.Service<any, any> {
   const machine = createMachine({
-    initial: BotStates.INITIAL,
+    initial,
     states: {
       [BotStates.INITIAL]: {
         on: {

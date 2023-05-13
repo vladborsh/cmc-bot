@@ -11,6 +11,7 @@ export class EnvConfig {
   public AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
   public AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
   public AWS_REGION = process.env.AWS_REGION;
+  public AWS_DYNAMO_TABLE_NAME = process.env.AWS_DYNAMO_TABLE_NAME;
   public BINANCE_API_KEY = process.env.BINANCE_API_KEY;
   public BINANCE_SECRET_KEY = process.env.BINANCE_SECRET_KEY;
   public CAPITAL_COM_API_KEY = process.env.CAPITAL_COM_API_KEY;
