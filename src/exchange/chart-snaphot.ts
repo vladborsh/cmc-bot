@@ -9,8 +9,8 @@ const UP_CANDLE_COLOR = '#57b36a';
 const DOWN_CANDLE_COLOR = '#b35764';
 
 export class ChartSnapshot {
-  canvasWidth = 1200;
-  canvasHeight = 1000;
+  canvasWidth = 1500;
+  canvasHeight = 900;
   candleWidth = 4;
   padding = 1;
   scalePaddingLeft = 10;
@@ -19,6 +19,13 @@ export class ChartSnapshot {
   scaleStep = 10;
   defaultPlotColor = '#666666';
   shapeDistanceFromCandle = 15
+
+  /* if number of candles more than canvas can contain, we should start draw candles a bit left from the canvas 0x coordinate */
+  backShift = 0;
+  /* if number of candles more than canvas can contain, we can render only certain visible candles */
+  maxVisibleCandlesNum = this.canvasWidth / (this.candleWidth + this.padding);
+  visibleNumOfCandles = 0;
+  visibleCandlesStartIndex = 0;
 
   /**
    * @param candles
@@ -34,8 +41,12 @@ export class ChartSnapshot {
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    const maxPrice = Math.max(...candles.map((kline: CandleChartData) => kline.high));
-    const minPrice = Math.min(...candles.map((kline: CandleChartData) => kline.low));
+    this.backShift = Math.min(this.canvasWidth - (candles.length * (this.candleWidth + this.padding)), 0);
+    this.visibleNumOfCandles = Math.min(this.maxVisibleCandlesNum, candles.length);
+    this.visibleCandlesStartIndex = candles.length - this.visibleNumOfCandles;
+
+    const maxPrice = Math.max(...candles.slice(this.visibleCandlesStartIndex).map((kline: CandleChartData) => kline.high));
+    const minPrice = Math.min(...candles.slice(this.visibleCandlesStartIndex).map((kline: CandleChartData) => kline.low));
     const priceRange = maxPrice - minPrice;
     const priceStep = priceRange / this.scaleStep;
 
@@ -81,7 +92,7 @@ export class ChartSnapshot {
     }
 
     this.renderPriceScale(maxPrice, priceStep, ctx);
-    this.renderDatetimeLabels(candles, candles.length, ctx);
+    this.renderDatetimeLabels(candles.slice(this.visibleCandlesStartIndex), this.visibleNumOfCandles, ctx);
 
     return canvas.toBuffer('image/png');
   }
@@ -102,8 +113,8 @@ export class ChartSnapshot {
     }
     ctx.strokeStyle = plotLine.color || '#666666';
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.moveTo(this.backShift + x1, y1);
+    ctx.lineTo(this.backShift + x2, y2);
     ctx.stroke();
     /* Unset line dash */
     ctx.setLineDash([]);
@@ -124,9 +135,9 @@ export class ChartSnapshot {
       const x = i * (this.candleWidth + this.padding);
       const y = (1 - (plot[i - shift] - minPrice) / priceRange) * this.canvasHeight;
       if (i === shift) {
-        ctx.moveTo(x, y);
+        ctx.moveTo(this.backShift + x, y);
       } else {
-        ctx.lineTo(x, y);
+        ctx.lineTo(this.backShift + x, y);
       }
     }
 
@@ -155,7 +166,7 @@ export class ChartSnapshot {
           y = (1 - (high - minPrice) / priceRange) * this.canvasHeight + wickHeight + this.shapeDistanceFromCandle;
         }
         ctx.fillStyle = plotShape.color || this.defaultPlotColor;
-        ctx.fillRect(x, y, this.candleWidth, this.candleWidth);
+        ctx.fillRect(this.backShift + x, y, this.candleWidth, this.candleWidth);
       }
     }
   }
@@ -184,14 +195,14 @@ export class ChartSnapshot {
         ? (1 - (close - minPrice) / priceRange) * this.canvasHeight
         : (1 - (open - minPrice) / priceRange) * this.canvasHeight;
     ctx.fillStyle = color;
-    ctx.fillRect(x, bodyY, this.candleWidth, bodyHeight);
+    ctx.fillRect(this.backShift + x, bodyY, this.candleWidth, bodyHeight);
 
     // draw wick
     const wickY = (1 - (high - minPrice) / priceRange) * this.canvasHeight;
     ctx.strokeStyle = color;
     ctx.beginPath();
-    ctx.moveTo(x + this.candleWidth / 2, wickY);
-    ctx.lineTo(x + this.candleWidth / 2, wickY + wickHeight);
+    ctx.moveTo(this.backShift + x + this.candleWidth / 2, wickY);
+    ctx.lineTo(this.backShift + x + this.candleWidth / 2, wickY + wickHeight);
     ctx.stroke();
   }
 
