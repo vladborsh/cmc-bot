@@ -253,7 +253,6 @@ export class TelegramBotActions {
     if (!command.text) {
       throw new Error(`invalid command: "${command.text}"`);
     }
-    console.log('fetch crypto');
     const [asset, timeFrame] = command.text.split(' ');
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
     const candles = await binanceClient.getCandles(
@@ -264,11 +263,14 @@ export class TelegramBotActions {
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
+    console.log(data?.verticalLines)
     const img = this.chartSnapshot.generateImage(
       candles,
       data?.plotShapes,
       data?.plots,
-      data?.lines
+      data?.lines,
+      data?.verticalLines,
+      data?.horizontalLines,
     );
     await this.bot.sendPhoto(chatId, img, { caption: `${asset} ${timeFrame} price chart` });
   }
