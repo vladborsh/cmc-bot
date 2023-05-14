@@ -1,6 +1,7 @@
 export enum BotCommands {
   topCrypto = 'Top Crypto',
   indices = 'Indices DXY and SnP',
+  selectCrypto = 'Select crypto chart',
   price24h = 'Price change 24h',
   price7d = 'Price change 7d',
   volume24h = 'Volume change 24h',
@@ -24,6 +25,8 @@ export enum CapComTimeIntervals {
 export enum BotStates {
   INITIAL = 'INITIAL',
   CRYPTO_CURRENCY_SORT = 'CRYPTO_CURRENCY_SORT',
+  ACCEPT_CRYPTO_CHART_NAME = 'ACCEPT_CRYPTO_CHART_NAME',
+  FETCH_SELECTED_CRYPTO_CHART = 'FETCH_SELECTED_CRYPTO_CHART',
   FETCH_CRYPTO_CURRENCY = 'FETCH_CRYPTO_CURRENCY',
   CRYPTO_CURRENCY_CHARTS = 'CRYPTO_CURRENCY_CHARTS',
   LATEST_NEWS = 'LATEST_NEWS',
@@ -33,6 +36,8 @@ export enum BotStates {
 
 export enum BotTransitions {
   GET_TOP_CRYPTO = 'GET_TOP_CRYPTO',
+  SELECT_CRYPTO_CHART = 'SELECT_CRYPTO_CHART',
+  GET_SELECTED_CRYPTO_CHART = 'GET_SELECTED_CRYPTO_CHART',
   SELECT_TOP_CRYPTO_SORT = 'SELECT_TOP_CRYPTO_SORT',
   BACK_FROM_CRYPTO_SORT = 'BACK_FROM_CRYPTO_SORT',
   SELECT_TO_SEE_CRYPTO_CHARTS = 'SELECT_TO_SEE_CRYPTO_CHARTS',

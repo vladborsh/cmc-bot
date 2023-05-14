@@ -1,8 +1,8 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot from 'node-telegram-bot-api';
 import { StateMachine } from '@xstate/fsm';
-import { BotStates, BotTransitions } from "../enums";
-import { TelegramBotActions } from "./telegram-bot-actions";
-import { BotStateHandler } from "./types";
+import { BotStates, BotTransitions } from '../enums';
+import { TelegramBotActions } from './telegram-bot-actions';
+import { BotStateHandler } from './types';
 
 export const stateActions: Record<BotStates, BotStateHandler> = {
   [BotStates.INITIAL]: async (actions: TelegramBotActions, message: TelegramBot.Message) => {
@@ -13,6 +13,31 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     message: TelegramBot.Message
   ) => {
     actions.sendCryptoSortingMessage(message.chat.id);
+  },
+  [BotStates.ACCEPT_CRYPTO_CHART_NAME]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    await actions.acceptChartForSelectedCrypto(message.chat.id.toString());
+    state.send(BotTransitions.GET_SELECTED_CRYPTO_CHART);
+  },
+  [BotStates.FETCH_SELECTED_CRYPTO_CHART]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    /* FIXME: shim for ignoring previous chat input */
+    if (message.text?.includes('Select')) {
+      return;
+    }
+    try {
+      await actions.fetchChartForSelectedCrypto(message.chat.id, message);
+    } catch (e) {
+      state.send(BotTransitions.GET_SELECTED_CRYPTO_CHART);
+      return;
+    }
+    state.send(BotTransitions.BACK_TO_START);
   },
   [BotStates.FETCH_CRYPTO_CURRENCY]: async (
     actions: TelegramBotActions,

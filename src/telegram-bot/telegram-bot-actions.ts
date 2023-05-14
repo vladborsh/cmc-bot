@@ -14,6 +14,7 @@ import { ReplyMarkup } from './interfaces/reply-markup';
 import { EMACrossUpIndicator } from '../indicators/ema-crossup-indicator';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
+import { CandleChartInterval_LT } from 'binance-api-node';
 
 export class TelegramBotActions {
   marketDataMapper: MarketDataMapper;
@@ -25,7 +26,13 @@ export class TelegramBotActions {
 
   static defaultReplyMarkup: ReplyMarkup = {
     reply_markup: {
-      keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],
+      keyboard: [
+        [
+          { text: BotCommands.topCrypto },
+          { text: BotCommands.indices },
+          { text: BotCommands.selectCrypto },
+        ],
+      ],
       resize_keyboard: true,
       one_time_keyboard: true,
     },
@@ -51,7 +58,13 @@ export class TelegramBotActions {
       `What we gonna do now? I can show you top Crypto currency selection for intraday trading or show important Indices info`,
       {
         reply_markup: {
-          keyboard: [[{ text: BotCommands.topCrypto }, { text: BotCommands.indices }]],
+          keyboard: [
+            [
+              { text: BotCommands.topCrypto },
+              { text: BotCommands.indices },
+              { text: BotCommands.selectCrypto },
+            ],
+          ],
           resize_keyboard: true,
           one_time_keyboard: true,
         },
@@ -135,7 +148,12 @@ export class TelegramBotActions {
         const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
           chartData: candles,
         });
-        const img = this.chartSnapshot.generateImage(candles, data?.plotShapes,  data?.plots, data?.lines);
+        const img = this.chartSnapshot.generateImage(
+          candles,
+          data?.plotShapes,
+          data?.plots,
+          data?.lines
+        );
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -215,4 +233,67 @@ export class TelegramBotActions {
       await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`);
     }
   }
+
+  public async acceptChartForSelectedCrypto(chatId: string): Promise<void> {
+    await this.bot.sendMessage(chatId, `What crypto do you prefer?`);
+  }
+
+  public async fetchChartForSelectedCrypto(
+    chatId: number,
+    command: TelegramBot.Message
+  ): Promise<void> {
+    try {
+      await validateChartForSelectedCryptoCommand(command.text, this.envConfig);
+    } catch (e) {
+      this.bot.sendMessage(
+        chatId,
+        `Error: ${e?.toString()}`,
+      );
+    }
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
+    console.log('fetch crypto');
+    const [asset, timeFrame] = command.text.split(' ');
+    const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    const candles = await binanceClient.getCandles(
+      asset.toUpperCase(),
+      timeFrame as CandleChartInterval_LT,
+      this.DEFAULT_CANDLE_NUMBER
+    );
+    const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
+      chartData: candles,
+    });
+    const img = this.chartSnapshot.generateImage(
+      candles,
+      data?.plotShapes,
+      data?.plots,
+      data?.lines
+    );
+    await this.bot.sendPhoto(chatId, img, { caption: `${asset} ${timeFrame} price chart` });
+  }
 }
+
+async function validateChartForSelectedCryptoCommand(
+  text: string | undefined,
+  envConfig: EnvConfig
+): Promise<void> {
+  if (!text) {
+    throw new Error(`invalid command: "${text}"`);
+  }
+  const [asset, timeFrame] = text.split(' ');
+  if (!asset || !asset.toUpperCase().includes('USDT')) {
+    throw new Error(`invalid asset name: "${asset}"`);
+  }
+  if (!timeFrame || !ALLOWED_TIME_FRAMES.includes(timeFrame as CandleChartInterval_LT)) {
+    throw new Error(`invalid time frame: "${timeFrame}"`);
+  }
+
+  await BinanceClient.getInstance(envConfig);
+
+  if (!BinanceClient.isSymbolExists(asset.toUpperCase())) {
+    throw new Error(`Binance does not support: "${asset}"`);
+  }
+}
+
+const ALLOWED_TIME_FRAMES: CandleChartInterval_LT[] = ['5m', '15m', '1h', '4h'];

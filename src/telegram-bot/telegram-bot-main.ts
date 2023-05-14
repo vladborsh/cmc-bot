@@ -77,7 +77,8 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     try {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
-      if (!transition) {
+      /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
+      if (!transition && botStates[message.chat.id].stateMachine.state.value !== BotStates.FETCH_SELECTED_CRYPTO_CHART) {
         await bot.sendMessage(
           message.chat.id,
           `Unknown command for me`,
@@ -87,7 +88,10 @@ export async function runTelegramBot(envConfig: EnvConfig) {
         transition = BotTransitions.BACK_TO_START;
       }
 
-      botStates[message.chat.id].stateMachine.send(transition);
+      /* FIXME: some command accepts user input */
+      if (botStates[message.chat.id].stateMachine.state.value !== BotStates.FETCH_SELECTED_CRYPTO_CHART) {
+        botStates[message.chat.id].stateMachine.send(transition);
+      }
 
       let newState: BotStates;
 
