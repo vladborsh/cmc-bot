@@ -133,7 +133,7 @@ export class TelegramBotActions {
 
     for (let symbol of this.selection.map((symbol) => `${symbol}USDT`)) {
       try {
-        if (!BinanceClient.isSymbolExists(symbol)) {
+        if (!(await BinanceClient.isSymbolExists(symbol))) {
           continue;
         }
       } catch (e) {
@@ -291,11 +291,11 @@ async function validateChartForSelectedCryptoCommand(
     throw new Error(`invalid time frame: "${timeFrame}"`);
   }
 
-  await BinanceClient.getInstance(envConfig);
+  BinanceClient.getInstance(envConfig);
 
-  if (!BinanceClient.isSymbolExists(asset.toUpperCase())) {
+  if (!(await BinanceClient.isSymbolExists(asset.toUpperCase()))) {
     throw new Error(`Binance does not support: "${asset}"`);
   }
 }
 
-const ALLOWED_TIME_FRAMES: CandleChartInterval_LT[] = ['5m', '15m', '1h', '4h'];
+const ALLOWED_TIME_FRAMES: CandleChartInterval_LT[] = ['1m', '5m', '15m', '1h', '4h'];

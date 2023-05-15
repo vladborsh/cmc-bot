@@ -29,6 +29,20 @@ export class DynamoDBClient {
     return this.instance;
   }
 
+  async getAllItems(): Promise<UserState[]> {
+    const params: DocumentClient.ScanInput = {
+      TableName: this.tableName,
+    };
+
+    try {
+      const data = await this.docClient.scan(params).promise();
+      return data.Items as UserState[];
+    } catch (err) {
+      console.error("Unable to scan items. Error JSON:", JSON.stringify(err, null, 2));
+      return [];
+    }
+  }
+
   public async getUserState(chatId: string): Promise<UserState | null> {
     const params: DocumentClient.GetItemInput = {
       TableName: this.tableName,

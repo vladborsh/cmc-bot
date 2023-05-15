@@ -9,7 +9,6 @@ import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-configs';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import { BinanceClient } from '../exchange/binance-client';
-import { ChartSnapshot } from '../exchange/chart-snaphot';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 
 interface BotState {
@@ -19,11 +18,20 @@ interface BotState {
 
 const botStates: Record<string, BotState> = {};
 
-async function getBotState(envConfig: EnvConfig, bot: TelegramBot, chatId: string): Promise<BotState> {
+async function getBotState(
+  envConfig: EnvConfig,
+  bot: TelegramBot,
+  chatId: string
+): Promise<BotState> {
   const dynamicValues = await DynamicConfig.getInstance(envConfig).getConfig();
   const savedState = await DynamoDBClient.getInstance(envConfig).getUserState(chatId);
   const stateMachine = createBotState(savedState?.dialogState);
-  const botActions = new TelegramBotActions(bot, envConfig, dynamicValues, savedState?.lastSelectedCrypto);
+  const botActions = new TelegramBotActions(
+    bot,
+    envConfig,
+    dynamicValues,
+    savedState?.lastSelectedCrypto
+  );
   stateMachine.start();
 
   return { stateMachine, botActions };
@@ -78,7 +86,11 @@ export async function runTelegramBot(envConfig: EnvConfig) {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
       /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
-      if (!transition && botStates[message.chat.id].stateMachine.state.value !== BotStates.FETCH_SELECTED_CRYPTO_CHART) {
+      if (
+        !transition &&
+        botStates[message.chat.id].stateMachine.state.value !==
+          BotStates.FETCH_SELECTED_CRYPTO_CHART
+      ) {
         await bot.sendMessage(
           message.chat.id,
           `Unknown command for me`,
@@ -89,7 +101,10 @@ export async function runTelegramBot(envConfig: EnvConfig) {
       }
 
       /* FIXME: some command accepts user input */
-      if (botStates[message.chat.id].stateMachine.state.value !== BotStates.FETCH_SELECTED_CRYPTO_CHART) {
+      if (
+        botStates[message.chat.id].stateMachine.state.value !==
+        BotStates.FETCH_SELECTED_CRYPTO_CHART
+      ) {
         botStates[message.chat.id].stateMachine.send(transition);
       }
 

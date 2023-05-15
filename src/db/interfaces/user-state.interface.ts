@@ -1,3 +1,4 @@
+import { CandleChartInterval_LT } from "binance-api-node";
 import { BotStates } from "../../enums";
 
 export interface UserState{
@@ -9,5 +10,5 @@ export interface UserState{
 
 export interface WatchListItem {
   name: string;
-  timeFrame: string;
+  timeFrame: CandleChartInterval_LT;
 }

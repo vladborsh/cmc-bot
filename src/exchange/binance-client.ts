@@ -24,10 +24,9 @@ export class BinanceClient {
     });
   }
 
-  public static async getInstance(envConfig: EnvConfig): Promise<BinanceClient> {
+  public static getInstance(envConfig: EnvConfig): BinanceClient {
     if (!this.instance) {
       this.instance = new BinanceClient(envConfig);
-      await this.loadExchangeInfo();
     }
 
     return this.instance;
@@ -62,9 +61,9 @@ export class BinanceClient {
     });
   }
 
-  public static isSymbolExists(symbolToCheck: string): boolean {
+  public static async isSymbolExists(symbolToCheck: string): Promise<boolean> {
     if (!this.exchangeInfo) {
-      throw new Error('exchange info was not laded');
+      await this.loadExchangeInfo();
     }
 
     return this.exchangeInfo.symbols.some(

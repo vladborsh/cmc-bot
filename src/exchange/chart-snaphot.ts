@@ -101,7 +101,6 @@ export class ChartSnapshot {
       verticalLines.forEach((line) => this.renderVerticalLine(line, ctx));
     }
 
-    console.log(horizontalLines);
     if (horizontalLines) {
       horizontalLines.forEach((line) => this.renderHorizontalLine(line, priceRange, minPrice, ctx));
     }
