@@ -72,4 +72,12 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     await actions.renderIndicesCharts(message.chat.id);
     state.send(BotTransitions.INDICES_SELECTED);
   },
+  [BotStates.FETCH_BTC_INFO]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+
+    await actions.getBTCChart(message.chat.id);
+  },
 };

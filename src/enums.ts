@@ -9,6 +9,7 @@ export enum BotCommands {
   noDoNotDraw = 'No, do not draw',
   yesShowNews = 'Yes, show news',
   noDoNotShowNews = 'No, do not show news',
+  btcInfo = 'BTC',
 }
 
 export enum CapComTimeIntervals {
@@ -32,6 +33,7 @@ export enum BotStates {
   LATEST_NEWS = 'LATEST_NEWS',
   FETCH_LATEST_NEWS = 'FETCH_LATEST_NEWS',
   FETCH_INDICES = 'FETCH_INDICIES',
+  FETCH_BTC_INFO = 'FETCH_BTC_INFO'
 }
 
 export enum BotTransitions {
@@ -49,5 +51,6 @@ export enum BotTransitions {
   GET_INDICES = 'GET_INDICES',
   INDICES_SELECTED = 'INDICES_SELECTED',
   BACK_TO_START = 'BACK_TO_START',
+  GET_BTC_INFO = 'GET_BTC_INFO'
 }
 

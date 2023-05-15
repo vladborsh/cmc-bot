@@ -31,6 +31,7 @@ export class TelegramBotActions {
           { text: BotCommands.topCrypto },
           { text: BotCommands.indices },
           { text: BotCommands.selectCrypto },
+          { text: BotCommands.btcInfo },
         ],
       ],
       resize_keyboard: true,
@@ -63,6 +64,7 @@ export class TelegramBotActions {
               { text: BotCommands.topCrypto },
               { text: BotCommands.indices },
               { text: BotCommands.selectCrypto },
+              { text: BotCommands.btcInfo },
             ],
           ],
           resize_keyboard: true,
@@ -273,6 +275,15 @@ export class TelegramBotActions {
       data?.horizontalLines,
     );
     await this.bot.sendPhoto(chatId, img, { caption: `${asset} ${timeFrame} price chart` });
+  }
+
+  public async getBTCChart(chatId: number) {
+    const binanceClient = await BinanceClient.getInstance(this.envConfig);
+
+    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 80);
+    const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
+    const img = this.chartSnapshot.generateImage(candles, plotshapes, plots);
+    await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });
   }
 }
 
