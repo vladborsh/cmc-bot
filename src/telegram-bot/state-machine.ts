@@ -10,6 +10,7 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
           [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
           [BotTransitions.SELECT_CRYPTO_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
+          [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
         },
       },
       [BotStates.ACCEPT_CRYPTO_CHART_NAME]: {
@@ -60,6 +61,11 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
         on: {
           [BotTransitions.INDICES_SELECTED]: BotStates.INITIAL,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        },
+      },
+      [BotStates.FETCH_BTC_INFO]: {
+        on: {
+          [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
         },
       },
     },
