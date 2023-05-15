@@ -280,7 +280,7 @@ export class TelegramBotActions {
   public async getBTCChart(chatId: number) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
 
-    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 80);
+    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 250);
     const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
     const img = this.chartSnapshot.generateImage(candles, plotshapes, plots);
     await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });
