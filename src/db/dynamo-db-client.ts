@@ -40,7 +40,7 @@ export class DynamoDBClient {
       return data.Items as UserState[];
     } catch (err) {
       console.error('Unable to scan items. Error JSON:', JSON.stringify(err, null, 2));
-      return [];
+      throw new Error('Error while get all items');
     }
   }
 
@@ -55,7 +55,7 @@ export class DynamoDBClient {
       return data.Item as UserState;
     } catch (err) {
       console.error('Unable to read item. Error JSON:', JSON.stringify(err, null, 2));
-      return null;
+      throw new Error('Error while get user state');
     }
   }
 
@@ -69,6 +69,7 @@ export class DynamoDBClient {
         .promise();
     } catch (err) {
       console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error('Error while update user state');
     }
   }
 
@@ -76,13 +77,17 @@ export class DynamoDBClient {
     chatId: TelegramBot.ChatId,
     watchListItem: WatchListItem
   ): Promise<void> {
-    try {
-      const state = await this.getUserState(chatId);
-      const old = state?.watchList ? state.watchList : [];
+    const state = await this.getUserState(chatId);
+    const old = state?.watchList ? state.watchList : [];
+    if (old.find(item => item.name == watchListItem.name && item.timeFrame == watchListItem.timeFrame)) {
+      throw new Error(`Item "${watchListItem.name} ${watchListItem.timeFrame}" already watched`);
+    }
 
+    try {
       await this.updateWatchList(chatId, [...old, watchListItem]);
     } catch (err) {
       console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error('Error while add item to watch list');
     }
   }
 

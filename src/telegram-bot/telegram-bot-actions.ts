@@ -283,15 +283,20 @@ export class TelegramBotActions {
     }
     const [asset, timeFrame] = command.text.split(' ');
 
-    await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
-      name: asset.toUpperCase(),
-      timeFrame: timeFrame as CandleChartInterval_LT,
-    });
+    try {
+      await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
+        name: asset.toUpperCase(),
+        timeFrame: timeFrame as CandleChartInterval_LT,
+      });
 
-    this.assetWatchListProcessor.addNewWatchList(command.chat.id, {
-      name: asset.toUpperCase(),
-      timeFrame: timeFrame as CandleChartInterval_LT,
-    });
+      this.assetWatchListProcessor.addNewWatchList(command.chat.id, {
+        name: asset.toUpperCase(),
+        timeFrame: timeFrame as CandleChartInterval_LT,
+      });
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
+    }
   }
 
   public async getBTCChart(chatId: number) {
