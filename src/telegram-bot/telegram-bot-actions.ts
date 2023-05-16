@@ -226,10 +226,13 @@ export class TelegramBotActions {
   }
 
   public async acceptChartForSelectedCrypto(chatId: string): Promise<void> {
-    await this.bot.sendMessage(chatId, `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
-    {
-      parse_mode: 'MarkdownV2',
-    });
+    await this.bot.sendMessage(
+      chatId,
+      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      {
+        parse_mode: 'MarkdownV2',
+      }
+    );
   }
 
   public async fetchChartForSelectedCrypto(command: TelegramBot.Message): Promise<void> {
@@ -252,7 +255,6 @@ export class TelegramBotActions {
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
-    console.log(data?.verticalLines);
     const img = this.chartSnapshot.generateImage(candles, data || {});
     await this.bot.sendPhoto(command.chat.id, img, {
       caption: `${asset} ${timeFrame} price chart`,
@@ -291,7 +293,10 @@ export class TelegramBotActions {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as CandleChartInterval_LT,
       });
-      this.bot.sendMessage(command.chat.id, `Everything is OK: ${asset} ${timeFrame} added to watch list`);
+      this.bot.sendMessage(
+        command.chat.id,
+        `Everything is OK: ${asset} ${timeFrame} added to watch list`
+      );
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);

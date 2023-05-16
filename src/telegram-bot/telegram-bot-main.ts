@@ -98,8 +98,6 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     try {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
-      console.log(botStates[message.chat.id].stateMachine.state.value);
-
       /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
       if (
         !transition &&
@@ -129,7 +127,6 @@ export async function runTelegramBot(envConfig: EnvConfig) {
 
       do {
         newState = botStates[message.chat.id].stateMachine.state.value;
-        console.log('newState:', newState)
 
         await dynamoDbClient.updateDialogState(message.chat.id.toString(), newState);
 

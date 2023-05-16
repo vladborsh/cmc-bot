@@ -5,6 +5,8 @@ export interface PlotLine {
   y2: number;
   color?: string;
   style?: PlotLineStyle;
+  title?: string;
+  titleLocation?: LineTitleLocation;
 }
 
 export enum PlotLineStyle{
@@ -12,3 +14,11 @@ export enum PlotLineStyle{
   DASHED = 'DASHED',
   DOTTED = 'DOTTED',
 }
+
+export enum LineTitleLocation {
+  LEFT_TOP = 'LEFT_TOP',
+  LEFT_BOTTOM = 'LEFT_BOTTOM',
+  RIGHT_TOP = 'RIGHT_TOP',
+  RIGHT_BOTTOM = 'RIGHT_BOTTOM',
+}
+
