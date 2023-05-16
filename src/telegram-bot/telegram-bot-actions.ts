@@ -226,7 +226,7 @@ export class TelegramBotActions {
   }
 
   public async acceptChartForSelectedCrypto(chatId: string): Promise<void> {
-    await this.bot.sendMessage(chatId, `What crypto do you prefer? Please type space\\-separated text with asset name and time frame (5m, 15m, 1h, 4h)\, like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+    await this.bot.sendMessage(chatId, `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
     {
       parse_mode: 'MarkdownV2',
     });
@@ -262,7 +262,7 @@ export class TelegramBotActions {
   public async acceptWatchedCryptoName(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What crypto do you prefer? Please type space\\-separated text with asset name and time frame (5m, 15m, 1h, 4h)\, like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
