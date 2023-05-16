@@ -15,6 +15,7 @@ import { EMACrossUpIndicator } from '../indicators/ema-crossup-indicator';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import { CandleChartInterval_LT } from 'binance-api-node';
+import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
 
 export class TelegramBotActions {
   marketDataMapper: MarketDataMapper;
@@ -30,7 +31,10 @@ export class TelegramBotActions {
         [
           { text: BotCommands.topCrypto },
           { text: BotCommands.indices },
+        ],
+        [
           { text: BotCommands.selectCrypto },
+          { text: BotCommands.watchCrypto },
         ],
       ],
       resize_keyboard: true,
@@ -41,6 +45,8 @@ export class TelegramBotActions {
   constructor(
     private bot: TelegramBot,
     private envConfig: EnvConfig,
+    private assetWatchListProcessor: AssetWatchListProcessor,
+    private dynamoDBClient: DynamoDBClient,
     dynamicConfig: DynamicConfigValues,
     selection?: string[]
   ) {
@@ -56,19 +62,7 @@ export class TelegramBotActions {
     this.bot.sendMessage(
       chatId,
       `What we gonna do now? I can show you top Crypto currency selection for intraday trading or show important Indices info`,
-      {
-        reply_markup: {
-          keyboard: [
-            [
-              { text: BotCommands.topCrypto },
-              { text: BotCommands.indices },
-              { text: BotCommands.selectCrypto },
-            ],
-          ],
-          resize_keyboard: true,
-          one_time_keyboard: true,
-        },
-      }
+      TelegramBotActions.defaultReplyMarkup,
     );
   }
 
@@ -140,8 +134,6 @@ export class TelegramBotActions {
         console.error(e);
         break;
       }
-
-      console.log(`load chart for ${symbol}...`);
 
       try {
         const candles = await binanceClient.getCandles(symbol, '1h', this.DEFAULT_CANDLE_NUMBER);
@@ -238,17 +230,12 @@ export class TelegramBotActions {
     await this.bot.sendMessage(chatId, `What crypto do you prefer?`);
   }
 
-  public async fetchChartForSelectedCrypto(
-    chatId: number,
-    command: TelegramBot.Message
-  ): Promise<void> {
+  public async fetchChartForSelectedCrypto(command: TelegramBot.Message): Promise<void> {
     try {
       await validateChartForSelectedCryptoCommand(command.text, this.envConfig);
     } catch (e) {
-      this.bot.sendMessage(
-        chatId,
-        `Error: ${e?.toString()}`,
-      );
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
     }
     if (!command.text) {
       throw new Error(`invalid command: "${command.text}"`);
@@ -263,16 +250,45 @@ export class TelegramBotActions {
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
-    console.log(data?.verticalLines)
+    console.log(data?.verticalLines);
     const img = this.chartSnapshot.generateImage(
       candles,
       data?.plotShapes,
       data?.plots,
       data?.lines,
       data?.verticalLines,
-      data?.horizontalLines,
+      data?.horizontalLines
     );
-    await this.bot.sendPhoto(chatId, img, { caption: `${asset} ${timeFrame} price chart` });
+    await this.bot.sendPhoto(command.chat.id, img, {
+      caption: `${asset} ${timeFrame} price chart`,
+    });
+  }
+
+  public async acceptWatchedCryptoName(chatId: TelegramBot.ChatId): Promise<void> {
+    await this.bot.sendMessage(chatId, `What crypto do you prefer?`);
+  }
+
+  public async setupWatchedCrypto(command: TelegramBot.Message) {
+    try {
+      await validateChartForSelectedCryptoCommand(command.text, this.envConfig);
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
+    }
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
+    const [asset, timeFrame] = command.text.split(' ');
+
+    await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
+      name: asset.toUpperCase(),
+      timeFrame: timeFrame as CandleChartInterval_LT,
+    });
+
+    this.assetWatchListProcessor.addNewWatchList(command.chat.id, {
+      name: asset.toUpperCase(),
+      timeFrame: timeFrame as CandleChartInterval_LT,
+    });
   }
 }
 

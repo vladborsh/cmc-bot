@@ -187,8 +187,6 @@ export class ChartSnapshot {
       ctx.setLineDash([1, 1]);
     }
 
-    console.log(x1, y1, x2, y2);
-
     ctx.strokeStyle = plotLine.color || '#666666';
     ctx.beginPath();
     ctx.moveTo(x1, y1);

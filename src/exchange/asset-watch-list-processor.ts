@@ -62,7 +62,7 @@ export class AssetWatchListProcessor {
     this.onTerminate$.next();
   }
 
-  public addNewWatchList(chatId: string, watchListItem: WatchListItem) {
+  public addNewWatchList(chatId: TelegramBot.ChatId, watchListItem: WatchListItem) {
     const chatIdToWatchListMap = this.dynamicChatIdToWatchListMap$.getValue();
     if (chatIdToWatchListMap[chatId]) {
       const foundWLItem = chatIdToWatchListMap[chatId].find(
@@ -89,6 +89,9 @@ export class AssetWatchListProcessor {
   private runSubscription(): void {
     this.dynamicChatIdToWatchListMap$
       .pipe(
+        tap((chatIdToWatchListMap) => {
+          console.info(chatIdToWatchListMap);
+        }),
         switchMap((chatIdToWatchListMap) =>
           combineLatest(
             Object.entries(chatIdToWatchListMap).map(([chatId, watchList]) =>

@@ -1,8 +1,9 @@
 import AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
-import { UserState } from './interfaces/user-state.interface';
+import { UserState, WatchListItem } from './interfaces/user-state.interface';
 import { EnvConfig } from '../env-config';
 import { BotStates } from '../enums';
+import TelegramBot from 'node-telegram-bot-api';
 
 export class DynamoDBClient {
   private docClient: DocumentClient;
@@ -38,15 +39,15 @@ export class DynamoDBClient {
       const data = await this.docClient.scan(params).promise();
       return data.Items as UserState[];
     } catch (err) {
-      console.error("Unable to scan items. Error JSON:", JSON.stringify(err, null, 2));
+      console.error('Unable to scan items. Error JSON:', JSON.stringify(err, null, 2));
       return [];
     }
   }
 
-  public async getUserState(chatId: string): Promise<UserState | null> {
+  public async getUserState(chatId: TelegramBot.ChatId): Promise<UserState | null> {
     const params: DocumentClient.GetItemInput = {
       TableName: this.tableName,
-      Key: { chatId: chatId },
+      Key: { chatId: chatId.toString() },
     };
 
     try {
@@ -58,20 +59,55 @@ export class DynamoDBClient {
     }
   }
 
-  public async updateDialogState(chatId: string, dialogState: BotStates): Promise<void> {
+  public async updateDialogState(
+    chatId: TelegramBot.ChatId,
+    dialogState: BotStates
+  ): Promise<void> {
     try {
       await this.docClient
-        .update(this.updateUpdateItemInput(chatId, 'dialogState', dialogState))
+        .update(this.updateUpdateItemInput<UserState>(chatId, 'dialogState', dialogState))
         .promise();
     } catch (err) {
       console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
     }
   }
 
-  public async updateLastSelectedCrypto(chatId: string, lastSelectedCrypto: string[]): Promise<void> {
+  public async addItemToWatchList(
+    chatId: TelegramBot.ChatId,
+    watchListItem: WatchListItem
+  ): Promise<void> {
+    try {
+      const state = await this.getUserState(chatId);
+      const old = state?.watchList ? state.watchList : [];
+
+      await this.updateWatchList(chatId, [...old, watchListItem]);
+    } catch (err) {
+      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+    }
+  }
+
+  public async updateWatchList(
+    chatId: TelegramBot.ChatId,
+    watchList: WatchListItem[]
+  ): Promise<void> {
     try {
       await this.docClient
-        .update(this.updateUpdateItemInput(chatId, 'lastSelectedCrypto', lastSelectedCrypto))
+        .update(this.updateUpdateItemInput<UserState>(chatId, 'watchList', watchList))
+        .promise();
+    } catch (err) {
+      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+    }
+  }
+
+  public async updateLastSelectedCrypto(
+    chatId: TelegramBot.ChatId,
+    lastSelectedCrypto: string[]
+  ): Promise<void> {
+    try {
+      await this.docClient
+        .update(
+          this.updateUpdateItemInput<UserState>(chatId, 'lastSelectedCrypto', lastSelectedCrypto)
+        )
         .promise();
     } catch (err) {
       console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
@@ -94,14 +130,14 @@ export class DynamoDBClient {
   }
 
   private updateUpdateItemInput<T>(
-    chatId: string,
-    fieldKey: string,
-    fieldValue: T
+    chatId: TelegramBot.ChatId,
+    fieldKey: keyof T,
+    fieldValue: T[keyof T]
   ): DocumentClient.UpdateItemInput {
     return {
       TableName: this.tableName,
-      Key: { chatId: chatId },
-      UpdateExpression: `set ${fieldKey} = :fieldValue`,
+      Key: { chatId: chatId.toString() },
+      UpdateExpression: `set ${fieldKey.toString()} = :fieldValue`,
       ExpressionAttributeValues: {
         ':fieldValue': fieldValue,
       },

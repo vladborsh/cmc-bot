@@ -10,16 +10,30 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
           [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
           [BotTransitions.SELECT_CRYPTO_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
+          [BotTransitions.WATCH_CRYPTO_BY_NAME]: BotStates.ACCEPT_WATCHED_CRYPTO_NAME,
         },
       },
       [BotStates.ACCEPT_CRYPTO_CHART_NAME]: {
         on: {
           [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_SELECTED_CRYPTO_CHART,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
       [BotStates.FETCH_SELECTED_CRYPTO_CHART]: {
         on: {
           [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_SELECTED_CRYPTO_CHART,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        },
+      },
+      [BotStates.ACCEPT_WATCHED_CRYPTO_NAME]: {
+        on: {
+          [BotTransitions.ACCEPTED_WATCH_CRYPTO_BY_NAME]: BotStates.SETUP_WATCHED_CRYPTO,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        }
+      },
+      [BotStates.SETUP_WATCHED_CRYPTO]: {
+        on: {
+          [BotTransitions.WATCH_CRYPTO_BY_NAME]: BotStates.SETUP_WATCHED_CRYPTO,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },

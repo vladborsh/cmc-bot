@@ -32,9 +32,34 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
-      await actions.fetchChartForSelectedCrypto(message.chat.id, message);
+      await actions.fetchChartForSelectedCrypto(message);
     } catch (e) {
       state.send(BotTransitions.GET_SELECTED_CRYPTO_CHART);
+      return;
+    }
+    state.send(BotTransitions.BACK_TO_START);
+  },
+  [BotStates.ACCEPT_WATCHED_CRYPTO_NAME]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    await actions.acceptWatchedCryptoName(message.chat.id);
+    state.send(BotTransitions.ACCEPTED_WATCH_CRYPTO_BY_NAME);
+  },
+  [BotStates.SETUP_WATCHED_CRYPTO]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    /* FIXME: shim for ignoring previous chat input */
+    if (message.text?.includes('Watch')) {
+      return;
+    }
+    try {
+      await actions.setupWatchedCrypto(message);
+    } catch (e) {
+      state.send(BotTransitions.WATCH_CRYPTO_BY_NAME);
       return;
     }
     state.send(BotTransitions.BACK_TO_START);

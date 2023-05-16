@@ -8,8 +8,9 @@ import { BotStates, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-configs';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
-import { BinanceClient } from '../exchange/binance-client';
 import { DynamoDBClient } from '../db/dynamo-db-client';
+import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
+import { BinanceClient } from '../exchange/binance-client';
 
 interface BotState {
   botActions: TelegramBotActions;
@@ -21,14 +22,19 @@ const botStates: Record<string, BotState> = {};
 async function getBotState(
   envConfig: EnvConfig,
   bot: TelegramBot,
+  assetWatchList: AssetWatchListProcessor,
   chatId: string
 ): Promise<BotState> {
   const dynamicValues = await DynamicConfig.getInstance(envConfig).getConfig();
-  const savedState = await DynamoDBClient.getInstance(envConfig).getUserState(chatId);
+  const dynamoDbClient = DynamoDBClient.getInstance(envConfig);
+  const savedState = await dynamoDbClient.getUserState(chatId);
   const stateMachine = createBotState(savedState?.dialogState);
+
   const botActions = new TelegramBotActions(
     bot,
     envConfig,
+    assetWatchList,
+    dynamoDbClient,
     dynamicValues,
     savedState?.lastSelectedCrypto
   );
@@ -51,10 +57,17 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     console.error('TG token was not provided');
     return;
   }
-  const dynamodb = DynamoDBClient.getInstance(envConfig);
-  await techIndicatorServiceHealthCheck(envConfig);
-
+  const dynamoDbClient = DynamoDBClient.getInstance(envConfig);
   const bot = new TelegramBot(envConfig.TG_TOKEN, { polling: true });
+  await techIndicatorServiceHealthCheck(envConfig);
+  const assetWatchList = AssetWatchListProcessor.getInstance(
+    dynamoDbClient,
+    TechIndicatorService.getInstance(envConfig),
+    BinanceClient.getInstance(envConfig),
+    bot
+  );
+
+  await assetWatchList.init();
 
   bot.on('message', async (message: TelegramBot.Message) => {
     console.log(`[${message.date}] ${message.text}`);
@@ -64,11 +77,11 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     }
 
     if (!botStates[message.chat.id]) {
-      botStates[message.chat.id] = await getBotState(envConfig, bot, message.chat.id.toString());
+      botStates[message.chat.id] = await getBotState(envConfig, bot, assetWatchList, message.chat.id.toString());
     }
 
     if (message.text === '/start') {
-      await dynamodb.saveUserState({
+      await dynamoDbClient.saveUserState({
         chatId: message.chat.id.toString(),
         dialogState: BotStates.INITIAL,
         watchList: [],
@@ -85,11 +98,14 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     try {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
+      console.log(botStates[message.chat.id].stateMachine.state.value);
+
       /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
       if (
         !transition &&
-        botStates[message.chat.id].stateMachine.state.value !==
-          BotStates.FETCH_SELECTED_CRYPTO_CHART
+        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.SETUP_WATCHED_CRYPTO].includes(
+          botStates[message.chat.id].stateMachine.state.value
+        )
       ) {
         await bot.sendMessage(
           message.chat.id,
@@ -102,8 +118,9 @@ export async function runTelegramBot(envConfig: EnvConfig) {
 
       /* FIXME: some command accepts user input */
       if (
-        botStates[message.chat.id].stateMachine.state.value !==
-        BotStates.FETCH_SELECTED_CRYPTO_CHART
+        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.SETUP_WATCHED_CRYPTO].includes(
+          botStates[message.chat.id].stateMachine.state.value
+        )
       ) {
         botStates[message.chat.id].stateMachine.send(transition);
       }
@@ -112,8 +129,9 @@ export async function runTelegramBot(envConfig: EnvConfig) {
 
       do {
         newState = botStates[message.chat.id].stateMachine.state.value;
+        console.log('newState:', newState)
 
-        await dynamodb.updateDialogState(message.chat.id.toString(), newState);
+        await dynamoDbClient.updateDialogState(message.chat.id.toString(), newState);
 
         await stateActions[newState](
           botStates[message.chat.id].botActions,
