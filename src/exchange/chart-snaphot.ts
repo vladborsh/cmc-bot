@@ -20,7 +20,7 @@ export class ChartSnapshot {
   candlePadding = 1;
   scalePaddingLeft = 10;
   scaleWidth = 50;
-  scaleHeight = this.canvasHeight - 20 - this.canvasPadding;
+  scaleHeight = this.canvasHeight - 20;
   scaleStep = 10;
   defaultPlotColor = '#666666';
   shapeDistanceFromCandle = 15;
@@ -122,8 +122,8 @@ export class ChartSnapshot {
   ) {
     const x1 = this.backShift + (plotLine.x1 * (this.candleWidth + this.candlePadding));
     const x2 = this.backShift + (plotLine.x2 * (this.candleWidth + this.candlePadding));
-    const y1 = (1 - (plotLine.y1 - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
-    const y2 = (1 - (plotLine.y2 - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const y1 = this.canvasPadding + (1 - (plotLine.y1 - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const y2 = this.canvasPadding + (1 - (plotLine.y2 - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
 
     if (plotLine.style === PlotLineStyle.DASHED) {
       ctx.setLineDash([3, 2]);
@@ -189,8 +189,8 @@ export class ChartSnapshot {
   ) {
     const x1 = 0;
     const x2 = this.canvasWidth;
-    const y1 = (1 - (plotLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
-    const y2 = (1 - (plotLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const y1 = this.canvasPadding + (1 - (plotLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const y2 = this.canvasPadding + (1 - (plotLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
 
     if (plotLine.style === PlotLineStyle.DASHED) {
       ctx.setLineDash([3, 2]);
@@ -212,7 +212,7 @@ export class ChartSnapshot {
       ctx.fillText(
         plotLine.title,
         this.canvasWidth - 100,
-        (1 - (plotLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding) - 5
+        y1 - 12
       );
     }
   }
@@ -258,11 +258,11 @@ export class ChartSnapshot {
         let y: number;
         if (plotShape.location === ShapeLocation.ABOVE) {
           y =
-            (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding) - this.shapeDistanceFromCandle;
+          this.canvasPadding + (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding) - this.shapeDistanceFromCandle;
         } else {
           const wickHeight = ((high - low) / priceRange) * (this.canvasHeight - this.canvasPadding);
           y =
-            (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding) +
+          this.canvasPadding + (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding) +
             wickHeight +
             this.shapeDistanceFromCandle;
         }
@@ -296,10 +296,10 @@ export class ChartSnapshot {
         ? (1 - (close - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding)
         : (1 - (open - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
     ctx.fillStyle = color;
-    ctx.fillRect(this.backShift + x, bodyY, this.candleWidth, bodyHeight);
+    ctx.fillRect(this.backShift + x, this.canvasPadding + bodyY, this.candleWidth, bodyHeight);
 
     // draw wick
-    const wickY = (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const wickY = this.canvasPadding + (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.moveTo(this.backShift + x + this.candleWidth / 2, wickY);

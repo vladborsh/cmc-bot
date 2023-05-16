@@ -79,7 +79,7 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       },
       [BotStates.FETCH_BTC_INFO]: {
         on: {
-          [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },
     },
