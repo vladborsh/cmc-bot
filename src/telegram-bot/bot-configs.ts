@@ -12,4 +12,5 @@ export const botMessageTextToState: Record<BotCommands, BotTransitions> = {
   [BotCommands.noDoNotDraw]: BotTransitions.SELECT_DO_NOT_SEE_CRYPTO_CHARTS,
   [BotCommands.yesShowNews]: BotTransitions.SELECT_TO_SEE_CRYPTO_NEWS,
   [BotCommands.noDoNotShowNews]: BotTransitions.SELECT_DO_NOT_SEE_CRYPTO_NEWS,
+  [BotCommands.btcInfo]: BotTransitions.GET_BTC_INFO,
 };
