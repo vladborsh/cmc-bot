@@ -79,7 +79,7 @@ export class DynamoDBClient {
   ): Promise<void> {
     const state = await this.getUserState(chatId);
     const old = state?.watchList ? state.watchList : [];
-    if (old.find(item => item.name == watchListItem.name && item.timeFrame == watchListItem.timeFrame)) {
+    if (!!old.find(item => item.name == watchListItem.name && item.timeFrame == watchListItem.timeFrame)) {
       throw new Error(`Item "${watchListItem.name} ${watchListItem.timeFrame}" already watched`);
     }
 

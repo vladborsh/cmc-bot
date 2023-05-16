@@ -14,7 +14,7 @@ import { ChartSnapshot } from './chart-snaphot';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import TelegramBot from 'node-telegram-bot-api';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { SmIndicatorData } from '../indicators/interfaces/sm-indicator-response';
+import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;
@@ -37,7 +37,12 @@ export class AssetWatchListProcessor {
     bot: TelegramBot
   ): AssetWatchListProcessor {
     if (!this.instance) {
-      this.instance = new AssetWatchListProcessor(dynamoDBClient, techIndicatorService, binanceClient, bot);
+      this.instance = new AssetWatchListProcessor(
+        dynamoDBClient,
+        techIndicatorService,
+        binanceClient,
+        bot
+      );
     }
 
     return this.instance;
@@ -127,7 +132,7 @@ export class AssetWatchListProcessor {
     const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
     historyCandles.push(lastChartData);
     historyCandles.shift();
-    let data: SmIndicatorData | undefined;
+    let data: ChartDrawingsData | undefined;
     try {
       const response = await this.techIndicatorService.getSMIndicator({
         chartData: historyCandles,
@@ -139,14 +144,7 @@ export class AssetWatchListProcessor {
 
     const chartSnapshot = new ChartSnapshot();
     if (data?.alerts?.length) {
-      const img = chartSnapshot.generateImage(
-        historyCandles,
-        data?.plotShapes,
-        data?.plots,
-        data?.lines,
-        data?.verticalLines,
-        data?.horizontalLines
-      );
+      const img = chartSnapshot.generateImage(historyCandles, data);
 
       await this.bot.sendPhoto(chatId, img, {
         caption: `${watchListItem.name} ${watchListItem.timeFrame} price chart. ${data?.alerts.join(

@@ -6,14 +6,14 @@ import { VerticalPlotLine } from '../../interfaces/charts/vertial-plot-line';
 
 export interface SmIndicatorResponse {
   errors?: string[];
-  data?: SmIndicatorData;
+  data?: ChartDrawingsData;
 }
 
-export interface SmIndicatorData {
-  plots: Plot[];
-  plotShapes: PlotShape[];
-  lines: PlotLine[];
-  alerts: string[];
-  verticalLines: VerticalPlotLine[];
-  horizontalLines: HorizontalPlotLine[];
+export interface ChartDrawingsData {
+  plots?: Plot[];
+  plotShapes?: PlotShape[];
+  lines?: PlotLine[];
+  alerts?: string[];
+  verticalLines?: VerticalPlotLine[];
+  horizontalLines?: HorizontalPlotLine[];
 }

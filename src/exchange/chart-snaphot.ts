@@ -6,6 +6,7 @@ import { Plot } from '../interfaces/charts/plot.interface';
 import { PlotLine, PlotLineStyle } from '../interfaces/charts/plot-line';
 import { VerticalPlotLine } from '../interfaces/charts/vertial-plot-line';
 import { HorizontalPlotLine } from '../interfaces/charts/horizontal-plot-line';
+import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
 
 const UP_CANDLE_COLOR = '#57b36a';
 const DOWN_CANDLE_COLOR = '#b35764';
@@ -36,11 +37,7 @@ export class ChartSnapshot {
    */
   generateImage(
     candles: CandleChartData[],
-    plotShapes?: PlotShape[],
-    plots?: Plot[],
-    plotLines?: PlotLine[],
-    verticalLines?: VerticalPlotLine[],
-    horizontalLines?: HorizontalPlotLine[]
+    chartDrawingsData: ChartDrawingsData,
   ): Buffer {
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
@@ -65,8 +62,8 @@ export class ChartSnapshot {
       this.renderCandle(kline, index, priceRange, minPrice, ctx);
     });
 
-    if (plotShapes) {
-      plotShapes.forEach((plotShape) => {
+    if (chartDrawingsData.plotShapes) {
+      chartDrawingsData.plotShapes.forEach((plotShape) => {
         this.renderSimpleShape(
           candles.length - plotShape.values.length,
           candles,
@@ -78,8 +75,8 @@ export class ChartSnapshot {
       });
     }
 
-    if (plots) {
-      plots.forEach((plot) => {
+    if (chartDrawingsData.plots) {
+      chartDrawingsData.plots.forEach((plot) => {
         this.renderPlot(
           candles.length - plot.values.length,
           plot.values,
@@ -91,18 +88,18 @@ export class ChartSnapshot {
       });
     }
 
-    if (plotLines) {
-      plotLines.forEach((plotLine) => {
+    if (chartDrawingsData.lines) {
+      chartDrawingsData.lines.forEach((plotLine) => {
         this.renderPlotLine(plotLine, priceRange, minPrice, ctx);
       });
     }
 
-    if (verticalLines) {
-      verticalLines.forEach((line) => this.renderVerticalLine(line, ctx));
+    if (chartDrawingsData.verticalLines) {
+      chartDrawingsData.verticalLines.forEach((line) => this.renderVerticalLine(line, ctx));
     }
 
-    if (horizontalLines) {
-      horizontalLines.forEach((line) => this.renderHorizontalLine(line, priceRange, minPrice, ctx));
+    if (chartDrawingsData.horizontalLines) {
+      chartDrawingsData.horizontalLines.forEach((line) => this.renderHorizontalLine(line, priceRange, minPrice, ctx));
     }
 
     this.renderPriceScale(maxPrice, priceStep, ctx);

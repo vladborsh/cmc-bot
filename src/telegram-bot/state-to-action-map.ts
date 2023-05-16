@@ -31,6 +31,10 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     if (message.text?.includes('Select')) {
       return;
     }
+    if (message.text?.toLowerCase().includes('stop')) {
+      state.send(BotTransitions.BACK_TO_START);
+      return;
+    }
     try {
       await actions.fetchChartForSelectedCrypto(message);
     } catch (e) {
@@ -54,6 +58,10 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
   ) => {
     /* FIXME: shim for ignoring previous chat input */
     if (message.text?.includes('Watch')) {
+      return;
+    }
+    if (message.text?.toLowerCase().includes('stop')) {
+      state.send(BotTransitions.BACK_TO_START);
       return;
     }
     try {

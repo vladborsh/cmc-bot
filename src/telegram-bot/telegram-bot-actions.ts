@@ -28,17 +28,9 @@ export class TelegramBotActions {
   static defaultReplyMarkup: ReplyMarkup = {
     reply_markup: {
       keyboard: [
-        [
-          { text: BotCommands.topCrypto },
-          { text: BotCommands.indices },
-        ],
-        [
-          { text: BotCommands.selectCrypto },
-          { text: BotCommands.watchCrypto },
-        ],
-        [
-          { text: BotCommands.btcInfo },
-        ]
+        [{ text: BotCommands.topCrypto }, { text: BotCommands.indices }],
+        [{ text: BotCommands.selectCrypto }, { text: BotCommands.watchCrypto }],
+        [{ text: BotCommands.btcInfo }],
       ],
       resize_keyboard: true,
       one_time_keyboard: true,
@@ -65,7 +57,7 @@ export class TelegramBotActions {
     this.bot.sendMessage(
       chatId,
       `What we gonna do now? I can show you top Crypto currency selection for intraday trading or show important Indices info`,
-      TelegramBotActions.defaultReplyMarkup,
+      TelegramBotActions.defaultReplyMarkup
     );
   }
 
@@ -143,12 +135,7 @@ export class TelegramBotActions {
         const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
           chartData: candles,
         });
-        const img = this.chartSnapshot.generateImage(
-          candles,
-          data?.plotShapes,
-          data?.plots,
-          data?.lines
-        );
+        const img = this.chartSnapshot.generateImage(candles, data || {});
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -210,8 +197,13 @@ export class TelegramBotActions {
         CapComTimeIntervals.HOUR,
         this.DEFAULT_CANDLE_NUMBER
       );
-      const [plotshapesSNP, plotsSNP] = EMACrossUpIndicator(marketDataSNP, 15);
-      const imgSNP = this.chartSnapshot.generateImage(marketDataSNP, plotshapesSNP, plotsSNP);
+
+      const { data: dataSNP } = await TechIndicatorService.getInstance(
+        this.envConfig
+      ).getSMIndicator({
+        chartData: marketDataSNP,
+      });
+      const imgSNP = this.chartSnapshot.generateImage(marketDataSNP, dataSNP || {});
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
 
       const marketDataDXY = await capitalComClient.getDXY(
@@ -219,8 +211,12 @@ export class TelegramBotActions {
         CapComTimeIntervals.HOUR,
         this.DEFAULT_CANDLE_NUMBER
       );
-      const [plotshapesDXY, plotsDXY] = EMACrossUpIndicator(marketDataDXY, 15);
-      const imgDXY = this.chartSnapshot.generateImage(marketDataDXY, plotshapesDXY, plotsDXY);
+      const { data: dataDXY } = await TechIndicatorService.getInstance(
+        this.envConfig
+      ).getSMIndicator({
+        chartData: marketDataDXY,
+      });
+      const imgDXY = this.chartSnapshot.generateImage(marketDataDXY, dataDXY || {});
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });
     } catch (e) {
       console.error(`error during chart indices chart generation`);
@@ -230,18 +226,21 @@ export class TelegramBotActions {
   }
 
   public async acceptChartForSelectedCrypto(chatId: string): Promise<void> {
-    await this.bot.sendMessage(chatId, `What crypto do you prefer?`);
+    await this.bot.sendMessage(chatId, `What crypto do you prefer? Please type space\\-separated text with asset name and time frame (5m, 15m, 1h, 4h)\, like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+    {
+      parse_mode: 'MarkdownV2',
+    });
   }
 
   public async fetchChartForSelectedCrypto(command: TelegramBot.Message): Promise<void> {
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
     try {
-      await validateChartForSelectedCryptoCommand(command.text, this.envConfig);
+      await validateChartForSelectedCryptoCommand(command.text.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
-    }
-    if (!command.text) {
-      throw new Error(`invalid command: "${command.text}"`);
     }
     const [asset, timeFrame] = command.text.split(' ');
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
@@ -254,34 +253,33 @@ export class TelegramBotActions {
       chartData: candles,
     });
     console.log(data?.verticalLines);
-    const img = this.chartSnapshot.generateImage(
-      candles,
-      data?.plotShapes,
-      data?.plots,
-      data?.lines,
-      data?.verticalLines,
-      data?.horizontalLines
-    );
+    const img = this.chartSnapshot.generateImage(candles, data || {});
     await this.bot.sendPhoto(command.chat.id, img, {
       caption: `${asset} ${timeFrame} price chart`,
     });
   }
 
   public async acceptWatchedCryptoName(chatId: TelegramBot.ChatId): Promise<void> {
-    await this.bot.sendMessage(chatId, `What crypto do you prefer?`);
+    await this.bot.sendMessage(
+      chatId,
+      `What crypto do you prefer? Please type space\\-separated text with asset name and time frame (5m, 15m, 1h, 4h)\, like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      {
+        parse_mode: 'MarkdownV2',
+      }
+    );
   }
 
   public async setupWatchedCrypto(command: TelegramBot.Message) {
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
     try {
-      await validateChartForSelectedCryptoCommand(command.text, this.envConfig);
+      await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
     }
-    if (!command.text) {
-      throw new Error(`invalid command: "${command.text}"`);
-    }
-    const [asset, timeFrame] = command.text.split(' ');
+    const [asset, timeFrame] = command.text.trim().split(' ');
 
     try {
       await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
@@ -293,6 +291,7 @@ export class TelegramBotActions {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as CandleChartInterval_LT,
       });
+      this.bot.sendMessage(command.chat.id, `Everything is OK: ${asset} ${timeFrame} added to watch list`);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
@@ -302,9 +301,11 @@ export class TelegramBotActions {
   public async getBTCChart(chatId: number) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
 
-    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 250);
-    const [plotshapes, plots] = EMACrossUpIndicator(candles, 15);
-    const img = this.chartSnapshot.generateImage(candles, plotshapes, plots);
+    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 700);
+    const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
+      chartData: candles,
+    });
+    const img = this.chartSnapshot.generateImage(candles, data || {});
     await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });
   }
 }
