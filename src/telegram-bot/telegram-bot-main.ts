@@ -101,7 +101,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
       /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
       if (
         !transition &&
-        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.SETUP_WATCHED_CRYPTO].includes(
+        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.ADD_TO_WATCH_LIST, BotStates.REMOVE_FROM_WATCH_LIST].includes(
           botStates[message.chat.id].stateMachine.state.value
         )
       ) {
@@ -116,7 +116,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
 
       /* FIXME: some command accepts user input */
       if (
-        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.SETUP_WATCHED_CRYPTO].includes(
+        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.ADD_TO_WATCH_LIST, BotStates.REMOVE_FROM_WATCH_LIST].includes(
           botStates[message.chat.id].stateMachine.state.value
         )
       ) {

@@ -2,6 +2,9 @@ export enum BotCommands {
   topCrypto = 'Top Crypto',
   indices = 'Indices DXY and SnP',
   watchCrypto = 'Watch crypto',
+  addToWatchlist = 'Add to watchlist',
+  removeFromWatchlist = 'Remove from watchlist',
+  viewWatchlist = 'View watchlist',
   selectCrypto = 'Select crypto chart',
   price24h = 'Price change 24h',
   price7d = 'Price change 7d',
@@ -11,6 +14,7 @@ export enum BotCommands {
   yesShowNews = 'Yes, show news',
   noDoNotShowNews = 'No, do not show news',
   btcInfo = 'BTC',
+  back = 'Back',
 }
 
 export enum CapComTimeIntervals {
@@ -34,8 +38,12 @@ export enum BotStates {
   LATEST_NEWS = 'LATEST_NEWS',
   FETCH_LATEST_NEWS = 'FETCH_LATEST_NEWS',
   FETCH_INDICES = 'FETCH_INDICIES',
-  ACCEPT_WATCHED_CRYPTO_NAME = 'ACCEPT_WATCHED_CRYPTO_NAME',
-  SETUP_WATCHED_CRYPTO = 'SETUP_WATCHED_CRYPTO',
+  WATCHLIST = 'WATCHLIST',
+  ADD_TO_WATCH_LIST_ACCEPT_NAME = 'ADD_TO_WATCH_LIST_ACCEPT_NAME',
+  REMOVE_FROM_WATCH_LIST_ACCEPT_NAME = 'REMOVE_FROM_WATCH_LIST_ACCEPT_NAME',
+  ADD_TO_WATCH_LIST = 'ADD_TO_WATCH_LIST',
+  REMOVE_FROM_WATCH_LIST = 'REMOVE_FROM_WATCH_LIST',
+  VIEW_WATCH_LIST = 'VIEW_WATCH_LIST',
   FETCH_BTC_INFO = 'FETCH_BTC_INFO'
 }
 
@@ -43,8 +51,11 @@ export enum BotTransitions {
   GET_TOP_CRYPTO = 'GET_TOP_CRYPTO',
   SELECT_CRYPTO_CHART = 'SELECT_CRYPTO_CHART',
   GET_SELECTED_CRYPTO_CHART = 'GET_SELECTED_CRYPTO_CHART',
-  WATCH_CRYPTO_BY_NAME = 'WATCH_CRYPTO_BY_NAME',
-  ACCEPTED_WATCH_CRYPTO_BY_NAME = 'ACCEPTED_WATCH_CRYPTO_BY_NAME',
+  GO_TO_WATCH_LIST = 'GO_TO_WATCH_LIST',
+  ADD_CRYPTO_TO_WATCH_LIST = 'ADD_CRYPTO_TO_WATCH_LIST',
+  REMOVE_CRYPTO_FROM_WATCH_LIST = 'REMOVE_CRYPTO_FROM_WATCH_LIST',
+  VIEW_WATCH_LIST = 'VIEW_WATCH_LIST',
+  ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME = 'ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME',
   SELECT_TOP_CRYPTO_SORT = 'SELECT_TOP_CRYPTO_SORT',
   BACK_FROM_CRYPTO_SORT = 'BACK_FROM_CRYPTO_SORT',
   SELECT_TO_SEE_CRYPTO_CHARTS = 'SELECT_TO_SEE_CRYPTO_CHARTS',

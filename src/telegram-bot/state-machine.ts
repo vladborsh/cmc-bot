@@ -10,9 +10,35 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
           [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
           [BotTransitions.SELECT_CRYPTO_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
-          [BotTransitions.WATCH_CRYPTO_BY_NAME]: BotStates.ACCEPT_WATCHED_CRYPTO_NAME,
+          [BotTransitions.GO_TO_WATCH_LIST]: BotStates.WATCHLIST,
           [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
         },
+      },
+      [BotStates.WATCHLIST]: {
+        on: {
+          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST]: BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME,
+          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME,
+          [BotTransitions.VIEW_WATCH_LIST]: BotStates.VIEW_WATCH_LIST,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        }
+      },
+      [BotStates.VIEW_WATCH_LIST]: {
+        on: {
+          [BotTransitions.GO_TO_WATCH_LIST]: BotStates.WATCHLIST,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        }
+      },
+      [BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME]: {
+        on: {
+          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        }
+      },
+      [BotStates.REMOVE_FROM_WATCH_LIST]: {
+        on: {
+          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
+          [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
+        }
       },
       [BotStates.ACCEPT_CRYPTO_CHART_NAME]: {
         on: {
@@ -26,15 +52,15 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },
-      [BotStates.ACCEPT_WATCHED_CRYPTO_NAME]: {
+      [BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME]: {
         on: {
-          [BotTransitions.ACCEPTED_WATCH_CRYPTO_BY_NAME]: BotStates.SETUP_WATCHED_CRYPTO,
+          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
-      [BotStates.SETUP_WATCHED_CRYPTO]: {
+      [BotStates.ADD_TO_WATCH_LIST]: {
         on: {
-          [BotTransitions.WATCH_CRYPTO_BY_NAME]: BotStates.SETUP_WATCHED_CRYPTO,
+          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },

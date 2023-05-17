@@ -261,17 +261,17 @@ export class TelegramBotActions {
     });
   }
 
-  public async acceptWatchedCryptoName(chatId: TelegramBot.ChatId): Promise<void> {
+  public async acceptAssetNameToAddInWatchList(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What asset do you want to add in watch list? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
     );
   }
 
-  public async setupWatchedCrypto(command: TelegramBot.Message) {
+  public async addAssetToWatchList(command: TelegramBot.Message) {
     if (!command.text) {
       throw new Error(`invalid command: "${command.text}"`);
     }
@@ -289,13 +289,16 @@ export class TelegramBotActions {
         timeFrame: timeFrame as CandleChartInterval_LT,
       });
 
-      this.assetWatchListProcessor.addNewWatchList(command.chat.id, {
+      this.assetWatchListProcessor.addWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as CandleChartInterval_LT,
       });
+
+      const watchListMessage = await this.getWatchListMessage(command.chat.id);
+
       this.bot.sendMessage(
         command.chat.id,
-        `Everything is OK: ${asset} ${timeFrame} added to watch list`
+        `Everything is OK: ${asset} ${timeFrame} added to watch list \n\n${watchListMessage}`
       );
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
@@ -303,7 +306,7 @@ export class TelegramBotActions {
     }
   }
 
-  public async getBTCChart(chatId: number) {
+  public async getBTCChart(chatId: TelegramBot.ChatId) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
 
     const candles = await binanceClient.getCandles('BTCUSDT', '1h', 700);
@@ -312,6 +315,88 @@ export class TelegramBotActions {
     });
     const img = this.chartSnapshot.generateImage(candles, data || {});
     await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });
+  }
+
+  public async getWatchListMenu(chatId: TelegramBot.ChatId): Promise<void> {
+    await this.bot.sendMessage(chatId, `What we gonna do with watch list?`, {
+      reply_markup: {
+        keyboard: [
+          [
+            { text: BotCommands.addToWatchlist },
+            { text: BotCommands.removeFromWatchlist },
+          ],
+          [
+            { text: BotCommands.viewWatchlist },
+            { text: BotCommands.back}
+          ],
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    });
+  }
+
+  public async viewWatchList(chatId: TelegramBot.ChatId): Promise<void> {
+    const finalMessage = await this.getWatchListMessage(chatId);
+
+    await this.bot.sendMessage(chatId, finalMessage);
+  }
+
+  public async acceptAssetNameToRemoveFromWatchList(chatId: TelegramBot.ChatId): Promise<void> {
+    await this.bot.sendMessage(
+      chatId,
+      `What asset do you want to remove from list? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      {
+        parse_mode: 'MarkdownV2',
+      }
+    );
+  }
+
+  public async removeAssetFromWatchList(command: TelegramBot.Message) {
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
+    try {
+      await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
+    }
+    const [asset, timeFrame] = command.text.trim().split(' ');
+
+    try {
+      await this.dynamoDBClient.removeItemFromWatchList(command.chat.id, {
+        name: asset.toUpperCase(),
+        timeFrame: timeFrame as CandleChartInterval_LT,
+      });
+
+      this.assetWatchListProcessor.removeWatchListItem(command.chat.id, {
+        name: asset.toUpperCase(),
+        timeFrame: timeFrame as CandleChartInterval_LT,
+      });
+
+      const watchListMessage = await this.getWatchListMessage(command.chat.id);
+
+      this.bot.sendMessage(
+        command.chat.id,
+        `Everything is OK: ${asset} ${timeFrame} removed from watch list \n\n${watchListMessage}`
+      );
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
+    }
+  }
+
+  private async getWatchListMessage(chatId: TelegramBot.ChatId): Promise<string> {
+    const userState = await this.dynamoDBClient.getUserState(chatId);
+
+    console.log(userState?.watchList);
+    const messageStr = userState?.watchList?.reduce(
+      (message, item) => `${message}- ${item.name} ${item.timeFrame}\n`,
+      ''
+    );
+
+    return messageStr ? `Watch list:\n${messageStr}` : `You don't have watched crypto`;
   }
 }
 

@@ -67,7 +67,7 @@ export class AssetWatchListProcessor {
     this.onTerminate$.next();
   }
 
-  public addNewWatchList(chatId: TelegramBot.ChatId, watchListItem: WatchListItem) {
+  public addWatchListItem(chatId: TelegramBot.ChatId, watchListItem: WatchListItem) {
     const chatIdToWatchListMap = this.dynamicChatIdToWatchListMap$.getValue();
     if (chatIdToWatchListMap[chatId]) {
       const foundWLItem = chatIdToWatchListMap[chatId].find(
@@ -82,6 +82,23 @@ export class AssetWatchListProcessor {
       this.dynamicChatIdToWatchListMap$.next({
         ...chatIdToWatchListMap,
         [chatId]: [...chatIdToWatchListMap[chatId], watchListItem],
+      });
+    } else {
+      this.dynamicChatIdToWatchListMap$.next({
+        ...chatIdToWatchListMap,
+        [chatId]: [watchListItem],
+      });
+    }
+  }
+
+  public removeWatchListItem(chatId: TelegramBot.ChatId, watchListItem: WatchListItem) {
+    const chatIdToWatchListMap = this.dynamicChatIdToWatchListMap$.getValue();
+    if (chatIdToWatchListMap[chatId]) {
+      this.dynamicChatIdToWatchListMap$.next({
+        ...chatIdToWatchListMap,
+        [chatId]: chatIdToWatchListMap[chatId].filter(
+          (item) => !(item.name === watchListItem.name && item.timeFrame === watchListItem.timeFrame)
+        ),
       });
     } else {
       this.dynamicChatIdToWatchListMap$.next({

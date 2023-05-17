@@ -91,6 +91,21 @@ export class DynamoDBClient {
     }
   }
 
+  public async removeItemFromWatchList(
+    chatId: TelegramBot.ChatId,
+    watchListItem: WatchListItem
+  ): Promise<void> {
+    const state = await this.getUserState(chatId);
+    const old = state?.watchList ? state.watchList : [];
+
+    try {
+      await this.updateWatchList(chatId, old.filter(item => !(item.name == watchListItem.name && item.timeFrame == watchListItem.timeFrame)));
+    } catch (err) {
+      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error('Error while add item to watch list');
+    }
+  }
+
   public async updateWatchList(
     chatId: TelegramBot.ChatId,
     watchList: WatchListItem[]

@@ -43,21 +43,37 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     }
     state.send(BotTransitions.BACK_TO_START);
   },
-  [BotStates.ACCEPT_WATCHED_CRYPTO_NAME]: async (
+  [BotStates.WATCHLIST]: async (
     actions: TelegramBotActions,
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
   ) => {
-    await actions.acceptWatchedCryptoName(message.chat.id);
-    state.send(BotTransitions.ACCEPTED_WATCH_CRYPTO_BY_NAME);
+    await actions.getWatchListMenu(message.chat.id);
   },
-  [BotStates.SETUP_WATCHED_CRYPTO]: async (
+  [BotStates.VIEW_WATCH_LIST]: async (
     actions: TelegramBotActions,
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
   ) => {
+    await actions.viewWatchList(message.chat.id);
+    state.send(BotTransitions.GO_TO_WATCH_LIST);
+  },
+  [BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    await actions.acceptAssetNameToRemoveFromWatchList(message.chat.id);
+    state.send(BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST);
+  },
+  [BotStates.REMOVE_FROM_WATCH_LIST]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    console.log('REMOVE_FROM_WATCH_LIST');
     /* FIXME: shim for ignoring previous chat input */
-    if (message.text?.includes('Watch')) {
+    if (message.text?.includes('Remove')) {
       return;
     }
     if (message.text?.toLowerCase().includes('stop')) {
@@ -65,9 +81,38 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
-      await actions.setupWatchedCrypto(message);
+      await actions.removeAssetFromWatchList(message);
     } catch (e) {
-      state.send(BotTransitions.WATCH_CRYPTO_BY_NAME);
+      state.send(BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST);
+      return;
+    }
+    state.send(BotTransitions.BACK_TO_START);
+  },
+  [BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    await actions.acceptAssetNameToAddInWatchList(message.chat.id);
+    state.send(BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME);
+  },
+  [BotStates.ADD_TO_WATCH_LIST]: async (
+    actions: TelegramBotActions,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>
+  ) => {
+    /* FIXME: shim for ignoring previous chat input */
+    if (message.text?.includes('Add')) {
+      return;
+    }
+    if (message.text?.toLowerCase().includes('stop')) {
+      state.send(BotTransitions.BACK_TO_START);
+      return;
+    }
+    try {
+      await actions.addAssetToWatchList(message);
+    } catch (e) {
+      state.send(BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME);
       return;
     }
     state.send(BotTransitions.BACK_TO_START);
