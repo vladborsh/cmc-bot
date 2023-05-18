@@ -108,11 +108,7 @@ export class ChartSnapshot {
 
     this.renderPriceScale(maxPrice, priceStep, ctx);
 
-    this.renderDatetimeLabels(
-      candles.slice(this.visibleCandlesStartIndex),
-      this.visibleNumOfCandles,
-      ctx
-    );
+    this.renderDatetimeLabels(candles, this.visibleNumOfCandles, ctx);
 
     return canvas.toBuffer('image/png');
   }
@@ -340,20 +336,22 @@ export class ChartSnapshot {
     limit: number,
     ctx: CanvasRenderingContext2D
   ) {
-    const labelStep = Math.ceil(limit / 5); // value to control the number of labels displayed
+    const labelStep = Math.ceil(limit / 7); // value to control the number of labels displayed
 
-    candles.forEach((kline: CandleChartData, index: number) => {
-      if (index % labelStep === 0) {
-        const timestamp = kline.openTime;
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+
+    for (let i = 0; i < limit; i++) {
+      if (i % labelStep === 0) {
+        const timestamp = candles[candles.length - 1 - i].openTime;
         const date = new Date(timestamp);
         const formattedDate = format(date, 'MMM dd hh:mm aa');
         const x =
-          this.scalePaddingLeft +
-          this.scaleWidth +
-          index * (this.candleWidth + this.candlePadding) +
-          this.candleWidth / 2;
+          this.backShift + (candles.length - 1 - i) * (this.candleWidth + this.candlePadding);
+
         ctx.fillText(formattedDate, x, this.canvasHeight - 20);
       }
-    });
+    }
   }
 }
