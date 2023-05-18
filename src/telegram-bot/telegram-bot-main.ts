@@ -25,7 +25,7 @@ async function getBotState(
   assetWatchList: AssetWatchListProcessor,
   chatId: string
 ): Promise<BotState> {
-  const dynamicValues = await DynamicConfig.getInstance(envConfig).getConfig();
+  const dynamicConfig = await DynamicConfig.getInstance(envConfig);
   const dynamoDbClient = DynamoDBClient.getInstance(envConfig);
   const savedState = await dynamoDbClient.getUserState(chatId);
   const stateMachine = createBotState(savedState?.dialogState);
@@ -35,7 +35,7 @@ async function getBotState(
     envConfig,
     assetWatchList,
     dynamoDbClient,
-    dynamicValues,
+    dynamicConfig,
     savedState?.lastSelectedCrypto
   );
   stateMachine.start();
@@ -58,12 +58,14 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     return;
   }
   const dynamoDbClient = DynamoDBClient.getInstance(envConfig);
+  const dynamicConfig = DynamicConfig.getInstance(envConfig);
   const bot = new TelegramBot(envConfig.TG_TOKEN, { polling: true });
   await techIndicatorServiceHealthCheck(envConfig);
   const assetWatchList = AssetWatchListProcessor.getInstance(
     dynamoDbClient,
     TechIndicatorService.getInstance(envConfig),
     BinanceClient.getInstance(envConfig),
+    dynamicConfig,
     bot
   );
 

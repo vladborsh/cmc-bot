@@ -17,4 +17,13 @@ export interface DynamicConfigValues {
   NEWS_NUMBER: number;
   /* maximum age limit for news, we aren't interested in old news */
   NEWS_AGE_DAYS_LIMIT: number;
+  /* number of history candles to be fetched from exchange */
+  CHART_HISTORY_SIZE: number;
+  CANVAS_DOWN_CANDLE_COLOR: string;
+  CANVAS_UP_CANDLE_COLOR: string;
+  CANVAS_DEFAULT_PLOT_COLOR: string;
+  CANVAS_HEIGHT: number;
+  CANVAS_WIDTH: number;
+  CANVAS_CANDLE_WIDTH: number;
+  CANVAS_CANDLE_PADDING: number;
 }

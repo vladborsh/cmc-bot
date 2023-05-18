@@ -6,24 +6,19 @@ import { CryptopanicNewsMapper } from '../cryptopanic-news-mapper';
 import { BotCommands, CapComTimeIntervals } from '../enums';
 import { processDayTradingSelectionForMessage } from '../formatting';
 import { BinanceClient } from '../exchange/binance-client';
-import { ChartSnapshot } from '../exchange/chart-snaphot';
+import { ChartCanvasRenderer } from '../exchange/chart-canvas-renderer';
 import { CapitalComClient } from '../exchange/capital-com-client';
-import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
-import { MappedListing } from '../interfaces/mapped-listing.interface';
 import { ReplyMarkup } from './interfaces/reply-markup';
-import { EMACrossUpIndicator } from '../indicators/ema-crossup-indicator';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import { CandleChartInterval_LT } from 'binance-api-node';
 import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
+import { getLinkText } from '../ge-link-text.helper';
+import { DynamicConfig } from '../dynamic-config';
 
 export class TelegramBotActions {
-  marketDataMapper: MarketDataMapper;
   requests: Requests;
-  cryptopanicNewsMapper: CryptopanicNewsMapper;
-  chartSnapshot: ChartSnapshot;
   selection: string[] | undefined;
-  private DEFAULT_CANDLE_NUMBER = 700;
 
   static defaultReplyMarkup: ReplyMarkup = {
     reply_markup: {
@@ -42,14 +37,11 @@ export class TelegramBotActions {
     private envConfig: EnvConfig,
     private assetWatchListProcessor: AssetWatchListProcessor,
     private dynamoDBClient: DynamoDBClient,
-    dynamicConfig: DynamicConfigValues,
+    private dynamicConfig: DynamicConfig,
     selection?: string[]
   ) {
     this.bot = bot;
-    this.marketDataMapper = new MarketDataMapper(dynamicConfig);
     this.requests = new Requests(envConfig);
-    this.cryptopanicNewsMapper = new CryptopanicNewsMapper(dynamicConfig);
-    this.chartSnapshot = new ChartSnapshot();
     this.selection = selection;
   }
 
@@ -88,11 +80,10 @@ export class TelegramBotActions {
   }
 
   public async selectCrypto(chatId: number, command: TelegramBot.Message) {
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const marketDataMapper = new MarketDataMapper(dynamicConfigValues);
     const marketData = await this.requests.selectDayTradingFromMarket();
-    const selection = this.marketDataMapper.filterAndSortCoins(
-      marketData,
-      command.text as BotCommands
-    );
+    const selection = marketDataMapper.filterAndSortCoins(marketData, command.text as BotCommands);
     this.selection = selection.map((listing) => listing.symbol);
     await DynamoDBClient.getInstance(this.envConfig).updateLastSelectedCrypto(
       chatId.toString(),
@@ -119,6 +110,8 @@ export class TelegramBotActions {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
 
     let count = 0;
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
 
     for (let symbol of this.selection.map((symbol) => `${symbol}USDT`)) {
       try {
@@ -131,11 +124,16 @@ export class TelegramBotActions {
       }
 
       try {
-        const candles = await binanceClient.getCandles(symbol, '1h', this.DEFAULT_CANDLE_NUMBER);
+
+        const candles = await binanceClient.getCandles(
+          symbol,
+          '1h',
+          dynamicConfigValues.CHART_HISTORY_SIZE
+        );
         const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
           chartData: candles,
         });
-        const img = this.chartSnapshot.generateImage(candles, data || {});
+        const img = chartCanvasRenderer.generateImage(candles, data || {});
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
@@ -170,8 +168,11 @@ export class TelegramBotActions {
       return;
     }
 
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const cryptopanicNewsMapper = new CryptopanicNewsMapper(dynamicConfigValues);
+
     try {
-      const coinNewsMessage = this.cryptopanicNewsMapper.processDayTradingNews(newsByAsset);
+      const coinNewsMessage = cryptopanicNewsMapper.processDayTradingNews(newsByAsset);
 
       this.bot.sendMessage(chatId, coinNewsMessage, {
         parse_mode: 'MarkdownV2',
@@ -192,10 +193,12 @@ export class TelegramBotActions {
     const session = await capitalComClient.startSession();
 
     try {
+      const dynamicConfigValues = await this.dynamicConfig.getConfig();
+      const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
       const marketDataSNP = await capitalComClient.getSNP(
         session,
         CapComTimeIntervals.HOUR,
-        this.DEFAULT_CANDLE_NUMBER
+        dynamicConfigValues.CHART_HISTORY_SIZE
       );
 
       const { data: dataSNP } = await TechIndicatorService.getInstance(
@@ -203,20 +206,20 @@ export class TelegramBotActions {
       ).getSMIndicator({
         chartData: marketDataSNP,
       });
-      const imgSNP = this.chartSnapshot.generateImage(marketDataSNP, dataSNP || {});
+      const imgSNP = chartCanvasRenderer.generateImage(marketDataSNP, dataSNP || {});
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
 
       const marketDataDXY = await capitalComClient.getDXY(
         session,
         CapComTimeIntervals.HOUR,
-        this.DEFAULT_CANDLE_NUMBER
+        dynamicConfigValues.CHART_HISTORY_SIZE
       );
       const { data: dataDXY } = await TechIndicatorService.getInstance(
         this.envConfig
       ).getSMIndicator({
         chartData: marketDataDXY,
       });
-      const imgDXY = this.chartSnapshot.generateImage(marketDataDXY, dataDXY || {});
+      const imgDXY = chartCanvasRenderer.generateImage(marketDataDXY, dataDXY || {});
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });
     } catch (e) {
       console.error(`error during chart indices chart generation`);
@@ -245,19 +248,23 @@ export class TelegramBotActions {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
     }
+
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const [asset, timeFrame] = command.text.split(' ');
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
     const candles = await binanceClient.getCandles(
       asset.toUpperCase(),
       timeFrame as CandleChartInterval_LT,
-      this.DEFAULT_CANDLE_NUMBER
+      dynamicConfigValues.CHART_HISTORY_SIZE
     );
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
-    const img = this.chartSnapshot.generateImage(candles, data || {});
+    const img = chartCanvasRenderer.generateImage(candles, data || {});
     await this.bot.sendPhoto(command.chat.id, img, {
-      caption: `${asset} ${timeFrame} price chart`,
+      caption: getLinkText(asset, timeFrame),
+      parse_mode: 'MarkdownV2',
     });
   }
 
@@ -308,12 +315,13 @@ export class TelegramBotActions {
 
   public async getBTCChart(chatId: TelegramBot.ChatId) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
-
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const candles = await binanceClient.getCandles('BTCUSDT', '1h', 700);
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
-    const img = this.chartSnapshot.generateImage(candles, data || {});
+    const img = chartCanvasRenderer.generateImage(candles, data || {});
     await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });
   }
 
@@ -321,14 +329,8 @@ export class TelegramBotActions {
     await this.bot.sendMessage(chatId, `What we gonna do with watch list?`, {
       reply_markup: {
         keyboard: [
-          [
-            { text: BotCommands.addToWatchlist },
-            { text: BotCommands.removeFromWatchlist },
-          ],
-          [
-            { text: BotCommands.viewWatchlist },
-            { text: BotCommands.back}
-          ],
+          [{ text: BotCommands.addToWatchlist }, { text: BotCommands.removeFromWatchlist }],
+          [{ text: BotCommands.viewWatchlist }, { text: BotCommands.back }],
         ],
         resize_keyboard: true,
         one_time_keyboard: true,

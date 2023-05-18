@@ -7,31 +7,42 @@ import { LineTitleLocation, PlotLine, PlotLineStyle } from '../interfaces/charts
 import { VerticalPlotLine } from '../interfaces/charts/vertial-plot-line';
 import { HorizontalPlotLine } from '../interfaces/charts/horizontal-plot-line';
 import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
+import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
 
-const UP_CANDLE_COLOR = '#57b36a';
-const DOWN_CANDLE_COLOR = '#b35764';
-
-export class ChartSnapshot {
-  canvasWidth = 1500;
-  canvasHeight = 900;
+export class ChartCanvasRenderer {
+  canvasWidth: number;
+  canvasHeight: number;
   canvasPadding = 100;
   canvasPaddingRight = 100;
-  candleWidth = 4;
-  candlePadding = 1;
+  candleWidth: number;
+  candlePadding: number;
   scalePaddingLeft = 10;
   scaleWidth = 50;
-  scaleHeight = this.canvasHeight - 20;
+  scaleHeight: number;
   scaleStep = 10;
-  defaultPlotColor = '#666666';
+  defaultPlotColor: string;
+  UP_CANDLE_COLOR: string;
+  DOWN_CANDLE_COLOR: string;
   shapeDistanceFromCandle = 15;
-
   /* if number of candles more than canvas can contain, we should start draw candles a bit left from the canvas 0x coordinate */
   backShift = 0;
   /* if number of candles more than canvas can contain, we can render only certain visible candles */
-  maxVisibleCandlesNum =
-    (this.canvasWidth - this.canvasPaddingRight) / (this.candleWidth + this.candlePadding);
+  maxVisibleCandlesNum: number;
   visibleNumOfCandles = 0;
   visibleCandlesStartIndex = 0;
+
+  constructor(dynamicConfigValues: DynamicConfigValues) {
+    this.canvasWidth = dynamicConfigValues.CANVAS_WIDTH;
+    this.canvasHeight = dynamicConfigValues.CANVAS_HEIGHT;
+    this.candleWidth = dynamicConfigValues.CANVAS_CANDLE_WIDTH;
+    this.candlePadding = dynamicConfigValues.CANVAS_CANDLE_PADDING;
+    this.defaultPlotColor = dynamicConfigValues.CANVAS_DEFAULT_PLOT_COLOR;
+    this.UP_CANDLE_COLOR = dynamicConfigValues.CANVAS_UP_CANDLE_COLOR;
+    this.DOWN_CANDLE_COLOR = dynamicConfigValues.CANVAS_DOWN_CANDLE_COLOR;
+    this.scaleHeight = this.canvasHeight - 20;
+    this.maxVisibleCandlesNum =
+    (this.canvasWidth - this.canvasPaddingRight) / (this.candleWidth + this.candlePadding);
+  }
 
   /**
    * @param candles
@@ -297,7 +308,7 @@ export class ChartSnapshot {
       (Math.abs(open - close) / priceRange) * (this.canvasHeight - this.canvasPadding);
     const wickHeight = ((high - low) / priceRange) * (this.canvasHeight - this.canvasPadding);
 
-    const color = close >= open ? UP_CANDLE_COLOR : DOWN_CANDLE_COLOR;
+    const color = close >= open ? this.UP_CANDLE_COLOR : this.DOWN_CANDLE_COLOR;
 
     // draw body
     const bodyY =

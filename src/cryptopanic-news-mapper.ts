@@ -28,7 +28,6 @@ export class CryptopanicNewsMapper {
     }, 'News for day trading: \n');
   }
 
-
   validateDate(date: string, daysLimit: number): boolean {
     const pickedDate = new Date(date);
     const todaysDate = new Date();

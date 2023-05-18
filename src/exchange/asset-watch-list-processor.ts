@@ -10,23 +10,25 @@ import {
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { UserState, WatchListItem } from '../db/interfaces/user-state.interface';
 import { BinanceClient } from './binance-client';
-import { ChartSnapshot } from './chart-snaphot';
+import { ChartCanvasRenderer } from './chart-canvas-renderer';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import TelegramBot from 'node-telegram-bot-api';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
+import { getLinkText } from '../ge-link-text.helper';
+import { DynamicConfig } from '../dynamic-config';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;
   private dynamicChatIdToWatchListMap$ = new BehaviorSubject<Record<string, WatchListItem[]>>({});
   private onTerminate$ = new Subject<void>();
   private chatIdToHistoryCandles: Record<string, Record<string, CandleChartData[]>> = {};
-  private readonly HISTORY_SIZE = 700;
 
   private constructor(
     private dynamoDBClient: DynamoDBClient,
     private techIndicatorService: TechIndicatorService,
     private binanceClient: BinanceClient,
+    private dynamicConfig: DynamicConfig,
     private bot: TelegramBot
   ) {}
 
@@ -34,6 +36,7 @@ export class AssetWatchListProcessor {
     dynamoDBClient: DynamoDBClient,
     techIndicatorService: TechIndicatorService,
     binanceClient: BinanceClient,
+    dynamicConfig: DynamicConfig,
     bot: TelegramBot
   ): AssetWatchListProcessor {
     if (!this.instance) {
@@ -41,6 +44,7 @@ export class AssetWatchListProcessor {
         dynamoDBClient,
         techIndicatorService,
         binanceClient,
+        dynamicConfig,
         bot
       );
     }
@@ -158,15 +162,14 @@ export class AssetWatchListProcessor {
     } catch (e) {
       return;
     }
-
-    const chartSnapshot = new ChartSnapshot();
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     if (data?.alerts?.length) {
-      const img = chartSnapshot.generateImage(historyCandles, data);
+      const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
       await this.bot.sendPhoto(chatId, img, {
-        caption: `${watchListItem.name} ${watchListItem.timeFrame} price chart. ${data?.alerts.join(
-          ' '
-        )}`,
+        caption: getLinkText(watchListItem.name, watchListItem.timeFrame),
+        parse_mode: 'MarkdownV2',
       });
     }
   }
@@ -176,10 +179,11 @@ export class AssetWatchListProcessor {
       this.chatIdToHistoryCandles[chatId] = {};
     }
     if (!this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
+      const dynamicConfigValues = await this.dynamicConfig.getConfig();
       const binanceCandles = await this.binanceClient.getCandles(
         watchListItem.name,
         watchListItem.timeFrame,
-        this.HISTORY_SIZE
+        dynamicConfigValues.CHART_HISTORY_SIZE,
       );
       /* last candles is unfinished */
       binanceCandles.pop();

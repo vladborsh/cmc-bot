@@ -35,12 +35,12 @@ export class TechIndicatorService {
    *
    * @example
    * const binanceClient = await BinanceClient.getInstance(EnvConfig.getInstance());
-   * const chartSnapshot = new ChartSnapshot();
+   * const chartCanvasRenderer = new ChartCanvasRenderer();
    * const candles = await binanceClient.getCandles('MATICUSDT', '5m', 150);
    * const { data } = await TechIndicatorService.getInstance(envConfig).getSMIndicator({
    *     chartData: candles,
    *   });
-   * const img = chartSnapshot.generateImage(candles, data?.plotShapes, data?.plots, data?.lines);
+   * const img = chartCanvasRenderer.generateImage(candles, data?.plotShapes, data?.plots, data?.lines);
    * await bot.sendPhoto(message.chat.id, img, { caption: `MATICUSDT price chart` });
    */
   public async getSMIndicator(requestData: SmIndicatorRequest): Promise<SmIndicatorResponse> {
