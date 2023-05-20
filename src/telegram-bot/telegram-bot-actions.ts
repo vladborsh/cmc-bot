@@ -3,15 +3,14 @@ import { EnvConfig } from '../env-config';
 import { Requests } from '../requests';
 import { MarketDataMapper } from '../market-data-mapper';
 import { CryptopanicNewsMapper } from '../cryptopanic-news-mapper';
-import { BotCommands, CapComTimeIntervals } from '../enums';
+import { BotCommands, CapComTimeIntervals, GeneralTimeIntervals } from '../enums';
 import { processDayTradingSelectionForMessage } from '../formatting';
 import { BinanceClient } from '../exchange/binance-client';
 import { ChartCanvasRenderer } from '../exchange/chart-canvas-renderer';
 import { CapitalComClient } from '../exchange/capital-com-client';
-import { ReplyMarkup } from './interfaces/reply-markup';
+import { ReplyMarkup } from '../interfaces/reply-markup';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
-import { CandleChartInterval_LT } from 'binance-api-node';
 import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
 import { getLinkText } from '../ge-link-text.helper';
 import { DynamicConfig } from '../dynamic-config';
@@ -108,6 +107,7 @@ export class TelegramBotActions {
     }
 
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    await binanceClient.init();
 
     let count = 0;
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -115,7 +115,7 @@ export class TelegramBotActions {
 
     for (let symbol of this.selection.map((symbol) => `${symbol}USDT`)) {
       try {
-        if (!(await BinanceClient.isSymbolExists(symbol))) {
+        if (!(await binanceClient.isSymbolExists(symbol))) {
           continue;
         }
       } catch (e) {
@@ -124,10 +124,9 @@ export class TelegramBotActions {
       }
 
       try {
-
         const candles = await binanceClient.getCandles(
           symbol,
-          '1h',
+          GeneralTimeIntervals.h1,
           dynamicConfigValues.CHART_HISTORY_SIZE
         );
         const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
@@ -195,8 +194,8 @@ export class TelegramBotActions {
     try {
       const dynamicConfigValues = await this.dynamicConfig.getConfig();
       const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
-      const marketDataSNP = await capitalComClient.getSNP(
-        session,
+      const marketDataSNP = await capitalComClient.getCandles(
+        'US500',
         CapComTimeIntervals.HOUR,
         dynamicConfigValues.CHART_HISTORY_SIZE
       );
@@ -209,8 +208,8 @@ export class TelegramBotActions {
       const imgSNP = chartCanvasRenderer.generateImage(marketDataSNP, dataSNP || {});
       await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
 
-      const marketDataDXY = await capitalComClient.getDXY(
-        session,
+      const marketDataDXY = await capitalComClient.getCandles(
+        'DXY',
         CapComTimeIntervals.HOUR,
         dynamicConfigValues.CHART_HISTORY_SIZE
       );
@@ -223,7 +222,7 @@ export class TelegramBotActions {
       await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });
     } catch (e) {
       console.error(`error during chart indices chart generation`);
-      console.log(e);
+      console.error(e);
       await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`);
     }
   }
@@ -231,7 +230,7 @@ export class TelegramBotActions {
   public async acceptChartForSelectedCrypto(chatId: string): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(m5, m15, h1, h4\\), like \`\`\` btcusdt m5\`\`\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
@@ -253,9 +252,10 @@ export class TelegramBotActions {
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const [asset, timeFrame] = command.text.split(' ');
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    await binanceClient.init();
     const candles = await binanceClient.getCandles(
       asset.toUpperCase(),
-      timeFrame as CandleChartInterval_LT,
+      timeFrame as GeneralTimeIntervals,
       dynamicConfigValues.CHART_HISTORY_SIZE
     );
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
@@ -271,7 +271,7 @@ export class TelegramBotActions {
   public async acceptAssetNameToAddInWatchList(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What asset do you want to add in watch list? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What asset do you want to add in watch list? Please type space\\-separated text with asset name and timeframe \\(m5, m15, h1, h4\\), like \`\`\` btcusdt m5\`\`\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
@@ -293,12 +293,12 @@ export class TelegramBotActions {
     try {
       await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
         name: asset.toUpperCase(),
-        timeFrame: timeFrame as CandleChartInterval_LT,
+        timeFrame: timeFrame as GeneralTimeIntervals,
       });
 
       this.assetWatchListProcessor.addWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
-        timeFrame: timeFrame as CandleChartInterval_LT,
+        timeFrame: timeFrame as GeneralTimeIntervals,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);
@@ -315,9 +315,10 @@ export class TelegramBotActions {
 
   public async getBTCChart(chatId: TelegramBot.ChatId) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    await binanceClient.init();
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
-    const candles = await binanceClient.getCandles('BTCUSDT', '1h', 700);
+    const candles = await binanceClient.getCandles('BTCUSDT', GeneralTimeIntervals.h1, 700);
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
     });
@@ -369,12 +370,12 @@ export class TelegramBotActions {
     try {
       await this.dynamoDBClient.removeItemFromWatchList(command.chat.id, {
         name: asset.toUpperCase(),
-        timeFrame: timeFrame as CandleChartInterval_LT,
+        timeFrame: timeFrame as GeneralTimeIntervals,
       });
 
       this.assetWatchListProcessor.removeWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
-        timeFrame: timeFrame as CandleChartInterval_LT,
+        timeFrame: timeFrame as GeneralTimeIntervals,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);
@@ -413,15 +414,21 @@ async function validateChartForSelectedCryptoCommand(
   if (!asset || !asset.toUpperCase().includes('USDT')) {
     throw new Error(`invalid asset name: "${asset}"`);
   }
-  if (!timeFrame || !ALLOWED_TIME_FRAMES.includes(timeFrame as CandleChartInterval_LT)) {
+  if (!timeFrame || !ALLOWED_TIME_FRAMES.includes(timeFrame as GeneralTimeIntervals)) {
     throw new Error(`invalid time frame: "${timeFrame}"`);
   }
 
-  BinanceClient.getInstance(envConfig);
-
-  if (!(await BinanceClient.isSymbolExists(asset.toUpperCase()))) {
+  const binanceClient = BinanceClient.getInstance(envConfig);
+  await binanceClient.init();
+  if (!(await binanceClient.isSymbolExists(asset.toUpperCase()))) {
     throw new Error(`Binance does not support: "${asset}"`);
   }
 }
 
-const ALLOWED_TIME_FRAMES: CandleChartInterval_LT[] = ['1m', '5m', '15m', '1h', '4h'];
+const ALLOWED_TIME_FRAMES: GeneralTimeIntervals[] = [
+  GeneralTimeIntervals.m1,
+  GeneralTimeIntervals.m5,
+  GeneralTimeIntervals.m15,
+  GeneralTimeIntervals.h1,
+  GeneralTimeIntervals.h4,
+];

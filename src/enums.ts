@@ -17,6 +17,17 @@ export enum BotCommands {
   back = 'Back',
 }
 
+export enum GeneralTimeIntervals {
+  m1 = 'm1',
+  m5 = 'm5',
+  m15 = 'm15',
+  m30 = 'm30',
+  h1 = 'h1',
+  h4 = 'h4',
+  d1 = 'd1',
+  w1 = 'w1',
+}
+
 export enum CapComTimeIntervals {
   MINUTE = 'MINUTE',
   MINUTE_5 = 'MINUTE_5',

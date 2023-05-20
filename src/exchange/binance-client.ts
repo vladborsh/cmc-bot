@@ -10,10 +10,23 @@ import { EnvConfig } from '../env-config';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { Observable, Observer } from 'rxjs';
 import { timeIntervalBinanceToMillis } from './exchange-helpers';
+import { IExchangeClient } from '../interfaces/exchange-client.interface';
+import { GeneralTimeIntervals } from '../enums';
 
-export class BinanceClient {
+export class BinanceClient implements IExchangeClient {
   client: BinanceConnect;
-  static exchangeInfo: ExchangeInfo;
+  exchangeInfo: ExchangeInfo | undefined;
+
+  private mapGeneralTimeInterval: Record<GeneralTimeIntervals, CandleChartInterval_LT> = {
+    [GeneralTimeIntervals.m1]: '1m',
+    [GeneralTimeIntervals.m5]: '5m',
+    [GeneralTimeIntervals.m15]: '15m',
+    [GeneralTimeIntervals.m30]: '30m',
+    [GeneralTimeIntervals.h1]: '1h',
+    [GeneralTimeIntervals.h4]: '4h',
+    [GeneralTimeIntervals.d1]: '1d',
+    [GeneralTimeIntervals.w1]: '1w',
+  };
 
   static instance: BinanceClient;
 
@@ -32,28 +45,32 @@ export class BinanceClient {
     return this.instance;
   }
 
-  private static async loadExchangeInfo() {
-    this.exchangeInfo = await this.instance.client.exchangeInfo();
+  async init() {
+    this.exchangeInfo = await this.client.exchangeInfo();
   }
 
   public async getCandles(
-    symbol: string,
-    interval: CandleChartInterval_LT,
+    asset: string,
+    interval: GeneralTimeIntervals,
     limit: number
   ): Promise<CandleChartData[]> {
-    const rawCandles = await this.client.candles({ symbol, interval, limit });
+    const rawCandles = await this.client.candles({
+      symbol: asset,
+      interval: this.mapGeneralTimeInterval[interval],
+      limit,
+    });
 
     return BinanceClient.mapCandleChartResult(rawCandles);
   }
 
   public getCandlesStream(
-    symbol: string,
-    interval: CandleChartInterval_LT
+    asset: string,
+    interval: GeneralTimeIntervals
   ): Observable<CandleChartData> {
     return new Observable((observer: Observer<CandleChartData>) => {
-      const clean = this.client.ws.candles(symbol, interval, (candle) =>{
+      const clean = this.client.ws.candles(asset, this.mapGeneralTimeInterval[interval], (candle) => {
         if (candle.isFinal) {
-          observer.next(BinanceClient.mapCandle(candle, interval))
+          observer.next(BinanceClient.mapCandle(candle, this.mapGeneralTimeInterval[interval]));
         }
       });
 
@@ -61,9 +78,9 @@ export class BinanceClient {
     });
   }
 
-  public static async isSymbolExists(symbolToCheck: string): Promise<boolean> {
+  public async isSymbolExists(symbolToCheck: string): Promise<boolean> {
     if (!this.exchangeInfo) {
-      await this.loadExchangeInfo();
+      throw new Error('client is not initialized. call "init" before');
     }
 
     return this.exchangeInfo.symbols.some(

@@ -8,15 +8,15 @@ import {
   tap,
 } from 'rxjs';
 import { DynamoDBClient } from '../db/dynamo-db-client';
-import { UserState, WatchListItem } from '../db/interfaces/user-state.interface';
+import { UserState, WatchListItem } from '../interfaces/user-state.interface';
 import { BinanceClient } from './binance-client';
 import { ChartCanvasRenderer } from './chart-canvas-renderer';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import TelegramBot from 'node-telegram-bot-api';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
 import { getLinkText } from '../ge-link-text.helper';
 import { DynamicConfig } from '../dynamic-config';
+import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;

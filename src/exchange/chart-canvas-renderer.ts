@@ -2,12 +2,11 @@ import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 import { format } from 'date-fns';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { PlotShape, ShapeLocation } from '../interfaces/charts/plot-shape.interface';
-import { Plot } from '../interfaces/charts/plot.interface';
 import { LineTitleLocation, PlotLine, PlotLineStyle } from '../interfaces/charts/plot-line';
 import { VerticalPlotLine } from '../interfaces/charts/vertial-plot-line';
 import { HorizontalPlotLine } from '../interfaces/charts/horizontal-plot-line';
-import { ChartDrawingsData } from '../indicators/interfaces/sm-indicator-response';
 import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
+import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
 
 export class ChartCanvasRenderer {
   canvasWidth: number;

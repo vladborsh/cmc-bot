@@ -6,11 +6,12 @@ import { TelegramBotActions } from './telegram-bot-actions';
 import { createBotState } from './state-machine';
 import { BotStates, BotTransitions } from '../enums';
 import { stateActions } from './state-to-action-map';
-import { botMessageTextToState } from './bot-configs';
+import { botMessageTextToState } from './bot-message-text-to-state.config';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
 import { BinanceClient } from '../exchange/binance-client';
+import { botPromptStates } from './bot-prompt-states.config';
 
 interface BotState {
   botActions: TelegramBotActions;
@@ -79,7 +80,12 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     }
 
     if (!botStates[message.chat.id]) {
-      botStates[message.chat.id] = await getBotState(envConfig, bot, assetWatchList, message.chat.id.toString());
+      botStates[message.chat.id] = await getBotState(
+        envConfig,
+        bot,
+        assetWatchList,
+        message.chat.id.toString()
+      );
     }
 
     if (message.text === '/start') {
@@ -100,12 +106,9 @@ export async function runTelegramBot(envConfig: EnvConfig) {
     try {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
-      /* FIXME: some command/states accepts user input (FETCH_SELECTED_CRYPTO_CHART) */
       if (
         !transition &&
-        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.ADD_TO_WATCH_LIST, BotStates.REMOVE_FROM_WATCH_LIST].includes(
-          botStates[message.chat.id].stateMachine.state.value
-        )
+        !botPromptStates.includes(botStates[message.chat.id].stateMachine.state.value)
       ) {
         await bot.sendMessage(
           message.chat.id,
@@ -116,12 +119,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
         transition = BotTransitions.BACK_TO_START;
       }
 
-      /* FIXME: some command accepts user input */
-      if (
-        ![BotStates.FETCH_SELECTED_CRYPTO_CHART, BotStates.ADD_TO_WATCH_LIST, BotStates.REMOVE_FROM_WATCH_LIST].includes(
-          botStates[message.chat.id].stateMachine.state.value
-        )
-      ) {
+      if (!botPromptStates.includes(botStates[message.chat.id].stateMachine.state.value)) {
         botStates[message.chat.id].stateMachine.send(transition);
       }
 
@@ -139,7 +137,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
         );
       } while (newState !== botStates[message.chat.id].stateMachine.state.value);
     } catch (error) {
-      console.error('Error while handling coin data command:', error);
+      console.error('Error while handling command:', error);
       if (botStates[message.chat.id]) {
         botStates[message.chat.id].stateMachine.send(BotTransitions.BACK_TO_START);
       }

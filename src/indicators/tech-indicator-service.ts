@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { EnvConfig } from '../env-config';
-import { SmIndicatorResponse } from './interfaces/sm-indicator-response';
-import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { SmIndicatorRequest } from './interfaces/sm-indicator-request';
+import { SmIndicatorRequest } from '../interfaces/indicator/sm-indicator-request';
+import { SmIndicatorResponse } from '../interfaces/indicator/sm-indicator-response';
 
 export class TechIndicatorService {
   defaultUrl = 'localhost:4000';

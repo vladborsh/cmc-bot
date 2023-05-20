@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
-import { UserState, WatchListItem } from './interfaces/user-state.interface';
+import { UserState, WatchListItem } from '../interfaces/user-state.interface';
 import { EnvConfig } from '../env-config';
 import { BotStates } from '../enums';
 import TelegramBot from 'node-telegram-bot-api';

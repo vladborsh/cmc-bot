@@ -12,9 +12,10 @@ import { chop } from '../formatting';
 import { timeIntervalCapComToMillis } from './exchange-helpers';
 
 export class CapitalComClient {
+  private session: SessionKeys | undefined;
   constructor(private envConfig: EnvConfig) {}
 
-  async encryptKeys(): Promise<CapComEncryptionKey> {
+  public async encryptKeys(): Promise<CapComEncryptionKey> {
     const encryptionKeyResponse: AxiosResponse<CapComEncryptionKey> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}/session/encryptionKey`,
       {
@@ -27,7 +28,7 @@ export class CapitalComClient {
     return encryptionKeyResponse.data;
   }
 
-  async startSession(): Promise<SessionKeys> {
+  public async startSession(): Promise<SessionKeys> {
     const session: AxiosResponse<SessionKeys> = await axios.post(
       `${this.envConfig.CAPITAL_COM_URL}/session`,
       {
@@ -41,51 +42,31 @@ export class CapitalComClient {
       }
     );
 
-    return {
+    this.session = {
       CST: session.headers['cst'],
       X_SECURITY_TOKEN: session.headers['x-security-token'],
     };
+
+    return this.session;
   }
 
-  async getDXY(
-    session: SessionKeys,
+  public async getCandles(
+    symbol: string,
     interval: CapComTimeIntervals,
     limit: number
   ): Promise<CandleChartData[]> {
+    if (!this.session) {
+      throw new Error('Capital.com session was not started');
+    }
+
     const [from, to] = CapitalComClient.getFromToDate(interval, limit);
 
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
-      `${this.envConfig.CAPITAL_COM_URL}/prices/DXY`,
+      `${this.envConfig.CAPITAL_COM_URL}/prices/${symbol}`,
       {
         headers: {
-          'X-SECURITY-TOKEN': session.X_SECURITY_TOKEN,
-          CST: session.CST,
-        },
-        params: {
-          resolution: interval,
-          from,
-          to,
-          max: limit,
-        },
-      }
-    );
-
-    return CapitalComClient.prepareChartData(marketResponse.data);
-  }
-
-  async getSNP(
-    session: SessionKeys,
-    interval: CapComTimeIntervals,
-    limit: number
-  ): Promise<CandleChartData[]> {
-    const [from, to] = CapitalComClient.getFromToDate(interval, limit);
-
-    const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
-      `${this.envConfig.CAPITAL_COM_URL}/prices/US500`,
-      {
-        headers: {
-          'X-SECURITY-TOKEN': session.X_SECURITY_TOKEN,
-          CST: session.CST,
+          'X-SECURITY-TOKEN': this.session.X_SECURITY_TOKEN,
+          CST: this.session.CST,
         },
         params: {
           resolution: interval,

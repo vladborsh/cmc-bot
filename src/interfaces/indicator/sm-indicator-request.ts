@@ -1,4 +1,4 @@
-import { CandleChartData } from "../../interfaces/charts/candlestick-chart-data";
+import { CandleChartData } from "../charts/candlestick-chart-data";
 
 export interface SmIndicatorRequest {
   chartData: CandleChartData[];
