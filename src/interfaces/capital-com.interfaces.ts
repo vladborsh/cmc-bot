@@ -1,3 +1,4 @@
+import { CapComCandleType, CapComTimeIntervals, CapitalComPriceType } from "../enums";
 
 export interface CapComEncryptionKey {
   encryptionKey: string;
@@ -25,4 +26,20 @@ export interface CapComMarketData {
     lastTradedVolume: number;
   }[];
   instrumentType: string;
+}
+
+export interface WSCapComMarketData {
+  status: string,
+  destination: string,
+  payload: {
+    resolution: CapComTimeIntervals,
+    epic: string,
+    type: CapComCandleType,
+    priceType: CapitalComPriceType,
+    t: number,
+    h: number,
+    l: number,
+    o: number,
+    c: number,
+  }
 }

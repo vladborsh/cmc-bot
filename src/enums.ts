@@ -39,6 +39,16 @@ export enum CapComTimeIntervals {
   WEEK = 'WEEK',
 }
 
+export enum CapitalComPriceType {
+  ask = 'ask',
+  bid = 'bid',
+}
+
+export enum CapComCandleType {
+  classic = 'classic',
+  heikinAshi = 'heikin-ashi',
+}
+
 export enum BotStates {
   INITIAL = 'INITIAL',
   CRYPTO_CURRENCY_SORT = 'CRYPTO_CURRENCY_SORT',

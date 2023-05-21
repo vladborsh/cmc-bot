@@ -12,21 +12,11 @@ import { Observable, Observer } from 'rxjs';
 import { timeIntervalBinanceToMillis } from './exchange-helpers';
 import { IExchangeClient } from '../interfaces/exchange-client.interface';
 import { GeneralTimeIntervals } from '../enums';
+import { mapGeneralTimeIntervalToBinance } from './configs/binance-client.config';
 
 export class BinanceClient implements IExchangeClient {
   client: BinanceConnect;
   exchangeInfo: ExchangeInfo | undefined;
-
-  private mapGeneralTimeInterval: Record<GeneralTimeIntervals, CandleChartInterval_LT> = {
-    [GeneralTimeIntervals.m1]: '1m',
-    [GeneralTimeIntervals.m5]: '5m',
-    [GeneralTimeIntervals.m15]: '15m',
-    [GeneralTimeIntervals.m30]: '30m',
-    [GeneralTimeIntervals.h1]: '1h',
-    [GeneralTimeIntervals.h4]: '4h',
-    [GeneralTimeIntervals.d1]: '1d',
-    [GeneralTimeIntervals.w1]: '1w',
-  };
 
   static instance: BinanceClient;
 
@@ -56,7 +46,7 @@ export class BinanceClient implements IExchangeClient {
   ): Promise<CandleChartData[]> {
     const rawCandles = await this.client.candles({
       symbol: asset,
-      interval: this.mapGeneralTimeInterval[interval],
+      interval: mapGeneralTimeIntervalToBinance[interval],
       limit,
     });
 
@@ -68,9 +58,9 @@ export class BinanceClient implements IExchangeClient {
     interval: GeneralTimeIntervals
   ): Observable<CandleChartData> {
     return new Observable((observer: Observer<CandleChartData>) => {
-      const clean = this.client.ws.candles(asset, this.mapGeneralTimeInterval[interval], (candle) => {
+      const clean = this.client.ws.candles(asset, mapGeneralTimeIntervalToBinance[interval], (candle) => {
         if (candle.isFinal) {
-          observer.next(BinanceClient.mapCandle(candle, this.mapGeneralTimeInterval[interval]));
+          observer.next(BinanceClient.mapCandle(candle, mapGeneralTimeIntervalToBinance[interval]));
         }
       });
 

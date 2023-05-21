@@ -189,14 +189,14 @@ export class TelegramBotActions {
 
   public async renderIndicesCharts(chatId: number) {
     const capitalComClient = new CapitalComClient(EnvConfig.getInstance());
-    const session = await capitalComClient.startSession();
+    await capitalComClient.init();
 
     try {
       const dynamicConfigValues = await this.dynamicConfig.getConfig();
       const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
       const marketDataSNP = await capitalComClient.getCandles(
         'US500',
-        CapComTimeIntervals.HOUR,
+        GeneralTimeIntervals.h1,
         dynamicConfigValues.CHART_HISTORY_SIZE
       );
 
@@ -210,7 +210,7 @@ export class TelegramBotActions {
 
       const marketDataDXY = await capitalComClient.getCandles(
         'DXY',
-        CapComTimeIntervals.HOUR,
+        GeneralTimeIntervals.h1,
         dynamicConfigValues.CHART_HISTORY_SIZE
       );
       const { data: dataDXY } = await TechIndicatorService.getInstance(

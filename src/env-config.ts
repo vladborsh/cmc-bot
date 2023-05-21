@@ -2,7 +2,8 @@ export class EnvConfig {
   public PORT = process.env.PORT || 3000;
   public CMC_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest';
   public CRYPTO_PANIC_URL = 'https://cryptopanic.com/api/v1/posts/';
-  public CAPITAL_COM_URL = 'https://api-capital.backend-capital.com/api/v1';
+  public CAPITAL_COM_URL = 'https://api-capital.backend-capital.com/';
+  public CAPITAL_COM_WS_URL = 'wss://api-streaming-capital.backend-capital.com/connect';
   public TECH_INDICATOR_SERVICE_URL = process.env.TECH_INDICATOR_SERVICE_URL;
   public TECH_INDICATOR_SERVICE_API_KEY = process.env.TECH_INDICATOR_SERVICE_API_KEY;
   public CMC_TOKEN = process.env.CMC_TOKEN;
