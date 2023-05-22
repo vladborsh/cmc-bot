@@ -11,4 +11,10 @@ export interface UserState{
 export interface WatchListItem {
   name: string;
   timeFrame: GeneralTimeIntervals;
+  exchange?: WatchListItemExchange;
+}
+
+export enum WatchListItemExchange {
+  binance = 'binance',
+  capitalcom = 'capitalcom',
 }
