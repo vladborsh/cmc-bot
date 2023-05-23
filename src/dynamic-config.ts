@@ -45,7 +45,6 @@ export class DynamicConfig {
 
         try {
           const config: DynamicConfigValues = JSON.parse(data.Body.toString());
-          console.info(`[INFO] config downloaded successfully. ${data.Body.toString()}`);
           resolve(config);
         } catch(e) {
           reject('config parsing failed');

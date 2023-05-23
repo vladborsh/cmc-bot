@@ -8,7 +8,7 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       [BotStates.INITIAL]: {
         on: {
           [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
-          [BotTransitions.SELECT_CRYPTO_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
+          [BotTransitions.GET_ASSET_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
           [BotTransitions.GO_TO_WATCH_LIST]: BotStates.WATCHLIST,
           [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
@@ -16,8 +16,8 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       },
       [BotStates.WATCHLIST]: {
         on: {
-          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST]: BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME,
-          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME,
+          [BotTransitions.ADD_ASSET_TO_WATCH_LIST]: BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME,
+          [BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME,
           [BotTransitions.VIEW_WATCH_LIST]: BotStates.VIEW_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
@@ -30,13 +30,13 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       },
       [BotStates.REMOVE_FROM_WATCH_LIST_ACCEPT_NAME]: {
         on: {
-          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
+          [BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
       [BotStates.REMOVE_FROM_WATCH_LIST]: {
         on: {
-          [BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
+          [BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST]: BotStates.REMOVE_FROM_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
@@ -54,13 +54,13 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       },
       [BotStates.ADD_TO_WATCH_LIST_ACCEPT_NAME]: {
         on: {
-          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
+          [BotTransitions.ADD_ASSET_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
       [BotStates.ADD_TO_WATCH_LIST]: {
         on: {
-          [BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
+          [BotTransitions.ADD_ASSET_TO_WATCH_LIST_ACCEPT_NAME]: BotStates.ADD_TO_WATCH_LIST,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },

@@ -8,7 +8,7 @@ import {
   tap,
 } from 'rxjs';
 import { DynamoDBClient } from '../db/dynamo-db-client';
-import { UserState, WatchListItem } from '../interfaces/user-state.interface';
+import { UserState, WatchListItem, WatchListItemExchange } from '../interfaces/user-state.interface';
 import { BinanceClient } from './binance-client';
 import { ChartCanvasRenderer } from './chart-canvas-renderer';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
@@ -17,6 +17,8 @@ import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { getLinkText } from '../ge-link-text.helper';
 import { DynamicConfig } from '../dynamic-config';
 import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
+import { CapitalComClient } from './capital-com-client';
+import { IExchangeClient } from '../interfaces/exchange-client.interface';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;
@@ -24,10 +26,16 @@ export class AssetWatchListProcessor {
   private onTerminate$ = new Subject<void>();
   private chatIdToHistoryCandles: Record<string, Record<string, CandleChartData[]>> = {};
 
+  watchListItemToExchange: Record<WatchListItemExchange, IExchangeClient> = {
+    [WatchListItemExchange.binance]: this.binanceClient,
+    [WatchListItemExchange.capitalcom]: this.capitalComClient,
+  }
+
   private constructor(
     private dynamoDBClient: DynamoDBClient,
     private techIndicatorService: TechIndicatorService,
     private binanceClient: BinanceClient,
+    private capitalComClient: CapitalComClient,
     private dynamicConfig: DynamicConfig,
     private bot: TelegramBot
   ) {}
@@ -36,6 +44,7 @@ export class AssetWatchListProcessor {
     dynamoDBClient: DynamoDBClient,
     techIndicatorService: TechIndicatorService,
     binanceClient: BinanceClient,
+    capitalComClient: CapitalComClient,
     dynamicConfig: DynamicConfig,
     bot: TelegramBot
   ): AssetWatchListProcessor {
@@ -44,6 +53,7 @@ export class AssetWatchListProcessor {
         dynamoDBClient,
         techIndicatorService,
         binanceClient,
+        capitalComClient,
         dynamicConfig,
         bot
       );
@@ -135,13 +145,15 @@ export class AssetWatchListProcessor {
     watchList: WatchListItem[]
   ): Observable<CandleChartData[]> {
     return combineLatest(
-      watchList.map((watchListItem) =>
-        this.binanceClient
+      watchList.map((watchListItem) =>{
+        const client = watchListItem.exchange ? this.watchListItemToExchange[watchListItem.exchange] : this.binanceClient;
+
+        return client
           .getCandlesStream(watchListItem.name, watchListItem.timeFrame)
           .pipe(
             tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem))
           )
-      )
+      })
     );
   }
 
@@ -160,10 +172,12 @@ export class AssetWatchListProcessor {
       });
       data = response.data;
     } catch (e) {
+      console.error(e)
       return;
     }
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
+
     if (data?.alerts?.length) {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
@@ -180,15 +194,18 @@ export class AssetWatchListProcessor {
     }
     if (!this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
       const dynamicConfigValues = await this.dynamicConfig.getConfig();
-      const binanceCandles = await this.binanceClient.getCandles(
+      const exchangeClient = watchListItem.exchange ? this.watchListItemToExchange[watchListItem.exchange] : this.binanceClient;
+      const historyCandles = await exchangeClient.getCandles(
         watchListItem.name,
         watchListItem.timeFrame,
         dynamicConfigValues.CHART_HISTORY_SIZE,
       );
       /* last candles is unfinished */
-      binanceCandles.pop();
-      binanceCandles.pop();
-      this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = binanceCandles;
+      historyCandles.pop();
+      if (watchListItem.exchange === WatchListItemExchange.binance) {
+        historyCandles.pop();
+      }
+      this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;
     }
 
     return this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)];

@@ -14,6 +14,7 @@ import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor';
 import { getLinkText } from '../ge-link-text.helper';
 import { DynamicConfig } from '../dynamic-config';
+import { WatchListItemExchange } from '../interfaces/user-state.interface';
 
 export class TelegramBotActions {
   requests: Requests;
@@ -23,7 +24,7 @@ export class TelegramBotActions {
     reply_markup: {
       keyboard: [
         [{ text: BotCommands.topCrypto }, { text: BotCommands.indices }],
-        [{ text: BotCommands.selectCrypto }, { text: BotCommands.watchCrypto }],
+        [{ text: BotCommands.getAssetChart }, { text: BotCommands.watchlist }],
         [{ text: BotCommands.btcInfo }],
       ],
       resize_keyboard: true,
@@ -107,7 +108,6 @@ export class TelegramBotActions {
     }
 
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
-    await binanceClient.init();
 
     let count = 0;
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -188,41 +188,28 @@ export class TelegramBotActions {
   }
 
   public async renderIndicesCharts(chatId: number) {
-    const capitalComClient = new CapitalComClient(EnvConfig.getInstance());
-    await capitalComClient.init();
+    const capitalComClient = CapitalComClient.getInstance(EnvConfig.getInstance());
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
 
     try {
-      const dynamicConfigValues = await this.dynamicConfig.getConfig();
-      const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
-      const marketDataSNP = await capitalComClient.getCandles(
-        'US500',
-        GeneralTimeIntervals.h1,
-        dynamicConfigValues.CHART_HISTORY_SIZE
-      );
+      for (let asset of ['US500', 'DXY']) {
+        const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
+        const marketData = await capitalComClient.getCandles(
+          asset,
+          GeneralTimeIntervals.h1,
+          dynamicConfigValues.CHART_HISTORY_SIZE
+        );
 
-      const { data: dataSNP } = await TechIndicatorService.getInstance(
-        this.envConfig
-      ).getSMIndicator({
-        chartData: marketDataSNP,
-      });
-      const imgSNP = chartCanvasRenderer.generateImage(marketDataSNP, dataSNP || {});
-      await this.bot.sendPhoto(chatId, imgSNP, { caption: `SNP 500 price chart` });
-
-      const marketDataDXY = await capitalComClient.getCandles(
-        'DXY',
-        GeneralTimeIntervals.h1,
-        dynamicConfigValues.CHART_HISTORY_SIZE
-      );
-      const { data: dataDXY } = await TechIndicatorService.getInstance(
-        this.envConfig
-      ).getSMIndicator({
-        chartData: marketDataDXY,
-      });
-      const imgDXY = chartCanvasRenderer.generateImage(marketDataDXY, dataDXY || {});
-      await this.bot.sendPhoto(chatId, imgDXY, { caption: `DXY price chart` });
+        const { data } = await TechIndicatorService.getInstance(
+          this.envConfig
+        ).getSMIndicator({
+          chartData: marketData,
+        });
+        const img = chartCanvasRenderer.generateImage(marketData, data || {});
+        await this.bot.sendPhoto(chatId, img, { caption: `${asset} price chart` });
+      }
     } catch (e) {
-      console.error(`error during chart indices chart generation`);
-      console.error(e);
+      console.error(`error during chart indices chart generation`, e);
       await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`);
     }
   }
@@ -252,7 +239,6 @@ export class TelegramBotActions {
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const [asset, timeFrame] = command.text.split(' ');
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
-    await binanceClient.init();
     const candles = await binanceClient.getCandles(
       asset.toUpperCase(),
       timeFrame as GeneralTimeIntervals,
@@ -271,7 +257,7 @@ export class TelegramBotActions {
   public async acceptAssetNameToAddInWatchList(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What asset do you want to add in watch list? Please type space\\-separated text with asset name and timeframe \\(m5, m15, h1, h4\\), like \`\`\` btcusdt m5\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What asset do you want to add in watch list? Please type space\\-separated text with asset name, timeframe \\(m5, m15, h1, h4\\) and optionally exchange, like \`btcusdt m5\` or \`gbpusd m15 capitalcom\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
@@ -288,17 +274,19 @@ export class TelegramBotActions {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
     }
-    const [asset, timeFrame] = command.text.trim().split(' ');
+    const [asset, timeFrame, exchange] = command.text.trim().split(' ');
 
     try {
       await this.dynamoDBClient.addItemToWatchList(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
+        exchange: exchange as WatchListItemExchange ?? WatchListItemExchange.binance,
       });
 
       this.assetWatchListProcessor.addWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
+        exchange: exchange as WatchListItemExchange ?? WatchListItemExchange.binance,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);
@@ -315,7 +303,6 @@ export class TelegramBotActions {
 
   public async getBTCChart(chatId: TelegramBot.ChatId) {
     const binanceClient = await BinanceClient.getInstance(this.envConfig);
-    await binanceClient.init();
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const candles = await binanceClient.getCandles('BTCUSDT', GeneralTimeIntervals.h1, 700);
@@ -348,7 +335,7 @@ export class TelegramBotActions {
   public async acceptAssetNameToRemoveFromWatchList(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What asset do you want to remove from list? Please type space\\-separated text with asset name and timeframe \\(5m, 15m, 1h, 4h\\), like \`\`\` btcusdt 5m\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What asset do you want to remove from list? Please type space\\-separated text with asset name, timeframe \\(m5, m15, h1, h4\\) and optionally exchange, like \`btcusdt m5\` or \`gbpusd m15 capitalcom\` or just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }
@@ -365,17 +352,19 @@ export class TelegramBotActions {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
     }
-    const [asset, timeFrame] = command.text.trim().split(' ');
+    const [asset, timeFrame, exchange] = command.text.trim().split(' ');
 
     try {
       await this.dynamoDBClient.removeItemFromWatchList(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
+        exchange: exchange as WatchListItemExchange ?? WatchListItemExchange.binance,
       });
 
       this.assetWatchListProcessor.removeWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
+        exchange: exchange as WatchListItemExchange ?? WatchListItemExchange.binance,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);
@@ -393,7 +382,6 @@ export class TelegramBotActions {
   private async getWatchListMessage(chatId: TelegramBot.ChatId): Promise<string> {
     const userState = await this.dynamoDBClient.getUserState(chatId);
 
-    console.log(userState?.watchList);
     const messageStr = userState?.watchList?.reduce(
       (message, item) => `${message}- ${item.name} ${item.timeFrame}\n`,
       ''
@@ -410,18 +398,18 @@ async function validateChartForSelectedCryptoCommand(
   if (!text) {
     throw new Error(`invalid command: "${text}"`);
   }
-  const [asset, timeFrame] = text.split(' ');
-  if (!asset || !asset.toUpperCase().includes('USDT')) {
-    throw new Error(`invalid asset name: "${asset}"`);
+  const [asset, timeFrame, exchange] = text.split(' ');
+  if (!exchange || exchange === 'binance') {
+    if (!asset || !asset.toUpperCase().includes('USDT')) {
+      throw new Error(`invalid asset name: "${asset}"`);
+    }
+    const binanceClient = BinanceClient.getInstance(envConfig);
+    if (!(await binanceClient.isSymbolExists(asset.toUpperCase()))) {
+      throw new Error(`Binance does not support: "${asset}"`);
+    }
   }
   if (!timeFrame || !ALLOWED_TIME_FRAMES.includes(timeFrame as GeneralTimeIntervals)) {
     throw new Error(`invalid time frame: "${timeFrame}"`);
-  }
-
-  const binanceClient = BinanceClient.getInstance(envConfig);
-  await binanceClient.init();
-  if (!(await binanceClient.isSymbolExists(asset.toUpperCase()))) {
-    throw new Error(`Binance does not support: "${asset}"`);
   }
 }
 

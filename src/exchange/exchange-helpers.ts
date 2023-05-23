@@ -34,7 +34,6 @@ export function timeIntervalBinanceToMillis(interval: CandleChartInterval_LT): n
   return intervalMappingBinance[interval];
 }
 
-
 export function timeIntervalCapComToMillis(interval: CapComTimeIntervals): number {
   return intervalMappingCapCom[interval];
 }

@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { StateMachine } from '@xstate/fsm';
-import { BotStates, BotTransitions } from '../enums';
+import { BotCommands, BotStates, BotTransitions } from '../enums';
 import { TelegramBotActions } from './telegram-bot-actions';
 import { BotStateHandler } from './types';
 
@@ -28,7 +28,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     state: StateMachine.Service<any, any>
   ) => {
     /* FIXME: shim for ignoring previous chat input */
-    if (message.text?.includes('Select')) {
+    if (message.text?.includes(BotCommands.getAssetChart)) {
       return;
     }
     if (message.text?.toLowerCase().includes('stop')) {
@@ -64,16 +64,15 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     state: StateMachine.Service<any, any>
   ) => {
     await actions.acceptAssetNameToRemoveFromWatchList(message.chat.id);
-    state.send(BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST);
+    state.send(BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST);
   },
   [BotStates.REMOVE_FROM_WATCH_LIST]: async (
     actions: TelegramBotActions,
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
   ) => {
-    console.log('REMOVE_FROM_WATCH_LIST');
     /* FIXME: shim for ignoring previous chat input */
-    if (message.text?.includes('Remove')) {
+    if (message.text?.includes(BotCommands.removeFromWatchlist)) {
       return;
     }
     if (message.text?.toLowerCase().includes('stop')) {
@@ -83,7 +82,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     try {
       await actions.removeAssetFromWatchList(message);
     } catch (e) {
-      state.send(BotTransitions.REMOVE_CRYPTO_FROM_WATCH_LIST);
+      state.send(BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST);
       return;
     }
     state.send(BotTransitions.BACK_TO_START);
@@ -94,7 +93,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     state: StateMachine.Service<any, any>
   ) => {
     await actions.acceptAssetNameToAddInWatchList(message.chat.id);
-    state.send(BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME);
+    state.send(BotTransitions.ADD_ASSET_TO_WATCH_LIST_ACCEPT_NAME);
   },
   [BotStates.ADD_TO_WATCH_LIST]: async (
     actions: TelegramBotActions,
@@ -102,7 +101,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     state: StateMachine.Service<any, any>
   ) => {
     /* FIXME: shim for ignoring previous chat input */
-    if (message.text?.includes('Add')) {
+    if (message.text?.includes(BotCommands.addToWatchlist)) {
       return;
     }
     if (message.text?.toLowerCase().includes('stop')) {
@@ -112,7 +111,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     try {
       await actions.addAssetToWatchList(message);
     } catch (e) {
-      state.send(BotTransitions.ADD_CRYPTO_TO_WATCH_LIST_ACCEPT_NAME);
+      state.send(BotTransitions.ADD_ASSET_TO_WATCH_LIST_ACCEPT_NAME);
       return;
     }
     state.send(BotTransitions.BACK_TO_START);

@@ -10,3 +10,14 @@ export const mapGeneralTimeIntervalToCapCom: Record<GeneralTimeIntervals, CapCom
   [GeneralTimeIntervals.d1]: CapComTimeIntervals.DAY,
   [GeneralTimeIntervals.w1]: CapComTimeIntervals.WEEK,
 };
+
+export const capitalComIntervalToMinutes: Record<CapComTimeIntervals, number> = {
+  [CapComTimeIntervals.MINUTE]: 1,
+  [CapComTimeIntervals.MINUTE_5]: 5,
+  [CapComTimeIntervals.MINUTE_15]: 15,
+  [CapComTimeIntervals.MINUTE_30]: 30,
+  [CapComTimeIntervals.HOUR]: 0, // TODO
+  [CapComTimeIntervals.HOUR_4]: 0, // TODO
+  [CapComTimeIntervals.DAY]: 0, // TODO
+  [CapComTimeIntervals.WEEK]: 0, // TODO
+};
