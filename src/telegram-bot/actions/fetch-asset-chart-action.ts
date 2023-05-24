@@ -1,0 +1,47 @@
+import TelegramBot from "node-telegram-bot-api";
+import { validateChartForSelectedCryptoCommand } from "../action-helpers";
+import { EnvConfig } from "../../env-config";
+import { DynamicConfig } from "../../dynamic-config";
+import { BinanceClient } from "../../exchange/binance-client";
+import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
+import { GeneralTimeIntervals } from "../../enums";
+import { TechIndicatorService } from "../../indicators/tech-indicator-service";
+import { getLinkText } from "../../ge-link-text.helper";
+
+export class FetchAssetChartAction {
+  constructor(
+    private envConfig: EnvConfig,
+    private dynamicConfig: DynamicConfig,
+    private bot: TelegramBot,
+  ) {}
+
+  public async execute(command: TelegramBot.Message): Promise<void> {
+    if (!command.text) {
+      throw new Error(`invalid command: "${command.text}"`);
+    }
+    try {
+      await validateChartForSelectedCryptoCommand(command.text.trim(), this.envConfig);
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+      throw new Error(`error: "${e?.toString()}"`);
+    }
+
+    const dynamicConfigValues = await this.dynamicConfig.getConfig();
+    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
+    const [asset, timeFrame] = command.text.split(' ');
+    const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    const candles = await binanceClient.getCandles(
+      asset.toUpperCase(),
+      timeFrame as GeneralTimeIntervals,
+      dynamicConfigValues.CHART_HISTORY_SIZE
+    );
+    const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
+      chartData: candles,
+    });
+    const img = chartCanvasRenderer.generateImage(candles, data || {});
+    await this.bot.sendPhoto(command.chat.id, img, {
+      caption: getLinkText(asset, timeFrame),
+      parse_mode: 'MarkdownV2',
+    });
+  }
+}
