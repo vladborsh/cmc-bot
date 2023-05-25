@@ -14,7 +14,7 @@ export class InitialMessageAction {
         reply_markup: {
           keyboard: [
             [{ text: BotCommands.topCrypto }, { text: BotCommands.indices }],
-            [{ text: BotCommands.getAssetChart }, { text: BotCommands.watchlist }],
+            [{ text: BotCommands.assetChart }, { text: BotCommands.watchlist }],
             [{ text: BotCommands.btcInfo }],
           ],
           resize_keyboard: true,

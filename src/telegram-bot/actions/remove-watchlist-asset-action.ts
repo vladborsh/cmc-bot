@@ -4,7 +4,7 @@ import { EnvConfig } from '../../env-config';
 import { DynamoDBClient } from '../../db/dynamo-db-client';
 import { AssetWatchListProcessor } from '../../exchange/asset-watch-list-processor';
 import { validateChartForSelectedCryptoCommand } from '../action-helpers';
-import { WatchListItemExchange } from '../../interfaces/user-state.interface';
+import { Exchange } from '../../interfaces/user-state.interface';
 import { GeneralTimeIntervals } from '../../enums';
 
 export class RemoveWatchlistAssetAction {
@@ -32,13 +32,13 @@ export class RemoveWatchlistAssetAction {
       await this.dynamoDbClient.removeItemFromWatchList(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as WatchListItemExchange) ?? WatchListItemExchange.binance,
+        exchange: (exchange as Exchange) ?? Exchange.binance,
       });
 
       this.assetWatchListProcessor.removeWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as WatchListItemExchange) ?? WatchListItemExchange.binance,
+        exchange: (exchange as Exchange) ?? Exchange.binance,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);

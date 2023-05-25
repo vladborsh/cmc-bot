@@ -7,7 +7,7 @@ export const botMessageTextToState: Record<BotCommands, BotTransitions> = {
   [BotCommands.addToWatchlist]: BotTransitions.ADD_ASSET_TO_WATCH_LIST,
   [BotCommands.removeFromWatchlist]: BotTransitions.REMOVE_ASSET_FROM_WATCH_LIST,
   [BotCommands.viewWatchlist]: BotTransitions.VIEW_WATCH_LIST,
-  [BotCommands.getAssetChart]: BotTransitions.GET_ASSET_CHART,
+  [BotCommands.assetChart]: BotTransitions.GET_ASSET_CHART,
   [BotCommands.price24h]: BotTransitions.SELECT_TOP_CRYPTO_SORT,
   [BotCommands.price7d]: BotTransitions.SELECT_TOP_CRYPTO_SORT,
   [BotCommands.volume24h]: BotTransitions.SELECT_TOP_CRYPTO_SORT,

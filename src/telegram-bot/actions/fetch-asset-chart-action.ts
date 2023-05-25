@@ -1,18 +1,28 @@
-import TelegramBot from "node-telegram-bot-api";
-import { validateChartForSelectedCryptoCommand } from "../action-helpers";
-import { EnvConfig } from "../../env-config";
-import { DynamicConfig } from "../../dynamic-config";
-import { BinanceClient } from "../../exchange/binance-client";
-import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
-import { GeneralTimeIntervals } from "../../enums";
-import { TechIndicatorService } from "../../indicators/tech-indicator-service";
-import { getLinkText } from "../../ge-link-text.helper";
+import TelegramBot from 'node-telegram-bot-api';
+import { validateChartForSelectedCryptoCommand } from '../action-helpers';
+import { EnvConfig } from '../../env-config';
+import { DynamicConfig } from '../../dynamic-config';
+import { BinanceClient } from '../../exchange/binance-client';
+import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
+import { GeneralTimeIntervals } from '../../enums';
+import { TechIndicatorService } from '../../indicators/tech-indicator-service';
+import { getLinkText } from '../../ge-link-text.helper';
+import { CapitalComClient } from '../../exchange/capital-com-client';
+import { Exchange } from '../../interfaces/user-state.interface';
+import { IExchangeClient } from '../../interfaces/exchange-client.interface';
 
 export class FetchAssetChartAction {
+  stringToExchange: Record<Exchange, IExchangeClient> = {
+    [Exchange.binance]: this.binanceClient,
+    [Exchange.capitalcom]: this.capitalComClient,
+  };
+
   constructor(
     private envConfig: EnvConfig,
     private dynamicConfig: DynamicConfig,
-    private bot: TelegramBot,
+    private binanceClient: BinanceClient,
+    private capitalComClient: CapitalComClient,
+    private bot: TelegramBot
   ) {}
 
   public async execute(command: TelegramBot.Message): Promise<void> {
@@ -28,20 +38,26 @@ export class FetchAssetChartAction {
 
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
-    const [asset, timeFrame] = command.text.split(' ');
-    const binanceClient = await BinanceClient.getInstance(this.envConfig);
-    const candles = await binanceClient.getCandles(
-      asset.toUpperCase(),
-      timeFrame as GeneralTimeIntervals,
-      dynamicConfigValues.CHART_HISTORY_SIZE
-    );
-    const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
-      chartData: candles,
-    });
-    const img = chartCanvasRenderer.generateImage(candles, data || {});
-    await this.bot.sendPhoto(command.chat.id, img, {
-      caption: getLinkText(asset, timeFrame),
-      parse_mode: 'MarkdownV2',
-    });
+    const [asset, timeFrame, exchange] = command.text.split(' ');
+
+    const exchangeClient = this.stringToExchange[exchange];
+
+    try {
+      const candles = await exchangeClient.getCandles(
+        asset.toUpperCase(),
+        timeFrame as GeneralTimeIntervals,
+        dynamicConfigValues.CHART_HISTORY_SIZE
+      );
+      const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
+        chartData: candles,
+      });
+      const img = chartCanvasRenderer.generateImage(candles, data || {});
+      await this.bot.sendPhoto(command.chat.id, img, {
+        caption: getLinkText(asset, timeFrame, exchange),
+        parse_mode: 'MarkdownV2',
+      });
+    } catch (e) {
+      this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
+    }
   }
 }

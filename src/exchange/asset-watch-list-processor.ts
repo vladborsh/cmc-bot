@@ -8,7 +8,7 @@ import {
   tap,
 } from 'rxjs';
 import { DynamoDBClient } from '../db/dynamo-db-client';
-import { UserState, WatchListItem, WatchListItemExchange } from '../interfaces/user-state.interface';
+import { UserState, WatchListItem, Exchange } from '../interfaces/user-state.interface';
 import { BinanceClient } from './binance-client';
 import { ChartCanvasRenderer } from './chart-canvas-renderer';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
@@ -26,9 +26,9 @@ export class AssetWatchListProcessor {
   private onTerminate$ = new Subject<void>();
   private chatIdToHistoryCandles: Record<string, Record<string, CandleChartData[]>> = {};
 
-  watchListItemToExchange: Record<WatchListItemExchange, IExchangeClient> = {
-    [WatchListItemExchange.binance]: this.binanceClient,
-    [WatchListItemExchange.capitalcom]: this.capitalComClient,
+  watchListItemToExchange: Record<Exchange, IExchangeClient> = {
+    [Exchange.binance]: this.binanceClient,
+    [Exchange.capitalcom]: this.capitalComClient,
   }
 
   private constructor(
@@ -202,7 +202,7 @@ export class AssetWatchListProcessor {
       );
       /* last candles is unfinished */
       historyCandles.pop();
-      if (watchListItem.exchange === WatchListItemExchange.binance) {
+      if (watchListItem.exchange === Exchange.binance) {
         historyCandles.pop();
       }
       this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;

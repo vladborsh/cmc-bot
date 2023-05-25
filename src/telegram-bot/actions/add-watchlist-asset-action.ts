@@ -4,7 +4,7 @@ import { EnvConfig } from '../../env-config';
 import { DynamicConfig } from '../../dynamic-config';
 import { DynamoDBClient } from '../../db/dynamo-db-client';
 import { GeneralTimeIntervals } from '../../enums';
-import { WatchListItemExchange } from '../../interfaces/user-state.interface';
+import { Exchange } from '../../interfaces/user-state.interface';
 import { AssetWatchListProcessor } from '../../exchange/asset-watch-list-processor';
 
 export class AddAssetToWatchlistAction {
@@ -32,13 +32,13 @@ export class AddAssetToWatchlistAction {
       await this.dynamoDbClient.addItemToWatchList(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as WatchListItemExchange) ?? WatchListItemExchange.binance,
+        exchange: (exchange as Exchange) ?? Exchange.binance,
       });
 
       this.assetWatchListProcessor.addWatchListItem(command.chat.id, {
         name: asset.toUpperCase(),
         timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as WatchListItemExchange) ?? WatchListItemExchange.binance,
+        exchange: (exchange as Exchange) ?? Exchange.binance,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);

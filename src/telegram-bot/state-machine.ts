@@ -8,7 +8,7 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
       [BotStates.INITIAL]: {
         on: {
           [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
-          [BotTransitions.GET_ASSET_CHART]: BotStates.ACCEPT_CRYPTO_CHART_NAME,
+          [BotTransitions.GET_ASSET_CHART]: BotStates.ACCEPT_ASSET_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
           [BotTransitions.GO_TO_WATCH_LIST]: BotStates.WATCHLIST,
           [BotTransitions.GET_BTC_INFO]: BotStates.FETCH_BTC_INFO,
@@ -40,15 +40,15 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
-      [BotStates.ACCEPT_CRYPTO_CHART_NAME]: {
+      [BotStates.ACCEPT_ASSET_CHART_NAME]: {
         on: {
-          [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_SELECTED_CRYPTO_CHART,
+          [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_ASSET_CHART,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         }
       },
-      [BotStates.FETCH_SELECTED_CRYPTO_CHART]: {
+      [BotStates.FETCH_ASSET_CHART]: {
         on: {
-          [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_SELECTED_CRYPTO_CHART,
+          [BotTransitions.GET_SELECTED_CRYPTO_CHART]: BotStates.FETCH_ASSET_CHART,
           [BotTransitions.BACK_TO_START]: BotStates.INITIAL,
         },
       },

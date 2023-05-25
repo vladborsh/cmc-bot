@@ -36,7 +36,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     const action = new SortCryptoMessageAction(bot);
     await action.execute(message.chat.id);
   },
-  [BotStates.ACCEPT_CRYPTO_CHART_NAME]: async (
+  [BotStates.ACCEPT_ASSET_CHART_NAME]: async (
     bot: TelegramBot,
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
@@ -45,13 +45,13 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     await action.execute(message.chat.id);
     state.send(BotTransitions.GET_SELECTED_CRYPTO_CHART);
   },
-  [BotStates.FETCH_SELECTED_CRYPTO_CHART]: async (
+  [BotStates.FETCH_ASSET_CHART]: async (
     bot: TelegramBot,
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
   ) => {
     /* FIXME: shim for ignoring previous chat input */
-    if (message.text?.includes(BotCommands.getAssetChart)) {
+    if (message.text?.includes(BotCommands.assetChart)) {
       return;
     }
     if (message.text?.toLowerCase().includes('stop')) {
@@ -59,9 +59,14 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
+      const envConfig = EnvConfig.getInstance();
+      const binanceClient = BinanceClient.getInstance(envConfig);
+      const capitalComClient = CapitalComClient.getInstance(envConfig);
       const action = new FetchAssetChartAction(
-        EnvConfig.getInstance(),
-        DynamicConfig.getInstance(EnvConfig.getInstance()),
+        envConfig,
+        DynamicConfig.getInstance(envConfig),
+        binanceClient,
+        capitalComClient,
         bot
       );
       await action.execute(message);
