@@ -24,6 +24,14 @@ export class BtcChartAction {
     );
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
+      inputs: {
+        sessions: [
+          {
+            hourStart: 9,
+            hourEnd: 20,
+          },
+        ],
+      },
     });
     const img = chartCanvasRenderer.generateImage(candles, data || {});
     await this.bot.sendPhoto(chatId, img, { caption: `BTC price chart` });

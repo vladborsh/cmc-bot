@@ -30,6 +30,9 @@ export class IndicesChartAction {
           this.envConfig
         ).getSMIndicator({
           chartData: marketData,
+          inputs: {
+            isMidnightShown: true,
+          }
         });
         const img = chartCanvasRenderer.generateImage(marketData, data || {});
         await this.bot.sendPhoto(chatId, img, { caption: `${asset} price chart` });

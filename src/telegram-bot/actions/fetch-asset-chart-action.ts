@@ -40,7 +40,7 @@ export class FetchAssetChartAction {
     const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
     const [asset, timeFrame, exchange] = command.text.split(' ');
 
-    const exchangeClient = this.stringToExchange[exchange];
+    const exchangeClient = this.stringToExchange[exchange] || this.binanceClient;
 
     try {
       const candles = await exchangeClient.getCandles(
@@ -50,6 +50,15 @@ export class FetchAssetChartAction {
       );
       const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
         chartData: candles,
+        inputs: {
+          isMidnightShown: true,
+          sessions: [
+            {
+              hourStart: 9,
+              hourEnd: 20,
+            },
+          ],
+        },
       });
       const img = chartCanvasRenderer.generateImage(candles, data || {});
       await this.bot.sendPhoto(command.chat.id, img, {

@@ -29,7 +29,7 @@ export class AssetWatchListProcessor {
   watchListItemToExchange: Record<Exchange, IExchangeClient> = {
     [Exchange.binance]: this.binanceClient,
     [Exchange.capitalcom]: this.capitalComClient,
-  }
+  };
 
   private constructor(
     private dynamoDBClient: DynamoDBClient,
@@ -111,7 +111,8 @@ export class AssetWatchListProcessor {
       this.dynamicChatIdToWatchListMap$.next({
         ...chatIdToWatchListMap,
         [chatId]: chatIdToWatchListMap[chatId].filter(
-          (item) => !(item.name === watchListItem.name && item.timeFrame === watchListItem.timeFrame)
+          (item) =>
+            !(item.name === watchListItem.name && item.timeFrame === watchListItem.timeFrame)
         ),
       });
     } else {
@@ -145,14 +146,16 @@ export class AssetWatchListProcessor {
     watchList: WatchListItem[]
   ): Observable<CandleChartData[]> {
     return combineLatest(
-      watchList.map((watchListItem) =>{
-        const client = watchListItem.exchange ? this.watchListItemToExchange[watchListItem.exchange] : this.binanceClient;
+      watchList.map((watchListItem) => {
+        const client = watchListItem.exchange
+          ? this.watchListItemToExchange[watchListItem.exchange]
+          : this.binanceClient;
 
         return client
           .getCandlesStream(watchListItem.name, watchListItem.timeFrame)
           .pipe(
             tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem))
-          )
+          );
       })
     );
   }
@@ -169,10 +172,19 @@ export class AssetWatchListProcessor {
     try {
       const response = await this.techIndicatorService.getSMIndicator({
         chartData: historyCandles,
+        inputs: {
+          isMidnightShown: true,
+          sessions: [
+            {
+              hourStart: 9,
+              hourEnd: 20,
+            },
+          ],
+        },
       });
       data = response.data;
     } catch (e) {
-      console.error(e)
+      console.error(e);
       return;
     }
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -182,7 +194,9 @@ export class AssetWatchListProcessor {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
       await this.bot.sendPhoto(chatId, img, {
-        caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame)} ${data?.alerts.join(' ')}`,
+        caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame)} ${data?.alerts.join(
+          ' '
+        )}`,
         parse_mode: 'MarkdownV2',
       });
     }
@@ -194,11 +208,13 @@ export class AssetWatchListProcessor {
     }
     if (!this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
       const dynamicConfigValues = await this.dynamicConfig.getConfig();
-      const exchangeClient = watchListItem.exchange ? this.watchListItemToExchange[watchListItem.exchange] : this.binanceClient;
+      const exchangeClient = watchListItem.exchange
+        ? this.watchListItemToExchange[watchListItem.exchange]
+        : this.binanceClient;
       const historyCandles = await exchangeClient.getCandles(
         watchListItem.name,
         watchListItem.timeFrame,
-        dynamicConfigValues.CHART_HISTORY_SIZE,
+        dynamicConfigValues.CHART_HISTORY_SIZE
       );
       /* last candles is unfinished */
       historyCandles.pop();
