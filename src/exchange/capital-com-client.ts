@@ -111,15 +111,6 @@ export class CapitalComClient implements IExchangeClient {
       }
     );
 
-    console.log(
-      symbol,
-      interval,
-      limit,
-      marketResponse.data.prices.length,
-      from,
-      marketResponse.data.prices[0].snapshotTime
-    );
-
     return mapMarketDataToChartData(marketResponse.data);
   }
 

@@ -194,7 +194,7 @@ export class AssetWatchListProcessor {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
       await this.bot.sendPhoto(chatId, img, {
-        caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame)} ${data?.alerts.join(
+        caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame, watchListItem.exchange)} ${data?.alerts.join(
           ' '
         )}`,
         parse_mode: 'MarkdownV2',
