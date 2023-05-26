@@ -105,7 +105,12 @@ export class CapitalComWebsocket {
     interval: GeneralTimeIntervals
   ): Observable<CandleChartData> {
     const timeframe = mapGeneralTimeIntervalToCapCom[interval];
-    this.epicObjs$.next([...this.epicObjs$.getValue(), { epic: asset, interval: timeframe }]);
+    const epicObjs = this.epicObjs$.getValue();
+    const foundEpic = epicObjs.find((epicO) => epicO.epic === asset && epicO.interval === timeframe);
+
+    if (!foundEpic) {
+      this.epicObjs$.next([...this.epicObjs$.getValue(), { epic: asset, interval: timeframe }]);
+    }
 
     if (!this.emitters[this.getKey(asset, timeframe)]) {
       this.emitters[this.getKey(asset, timeframe)] = new Subject<CandleChartData>();
