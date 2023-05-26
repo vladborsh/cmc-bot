@@ -7,6 +7,7 @@ import {
   catchError,
   filter,
   switchMap,
+  withLatestFrom,
 } from 'rxjs';
 import {
   CapComCandleType,
@@ -18,7 +19,10 @@ import { EnvConfig } from '../env-config';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { SessionKeys, WSCapComMarketData } from '../interfaces/capital-com.interfaces';
 import { mapWSMarketDataToChartData } from './configs/capital-com.helpers';
-import { capitalComIntervalToMinutes, mapGeneralTimeIntervalToCapCom } from './configs/capital-com-client.config';
+import {
+  capitalComIntervalToMinutes,
+  mapGeneralTimeIntervalToCapCom,
+} from './configs/capital-com-client.config';
 import { WebSocket } from 'ws';
 import { BidAsk, EpicDataWSEvent, EpicObject } from './cap-com.interfaces';
 
@@ -42,42 +46,57 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
+        withLatestFrom(this.session$),
+        switchMap(([epicObjs, session]) =>
+          this.sendSubscribeMsg(
+            epicObjs.map(({ epic }) => epic),
+            session
+          ),
+        ),
       )
-      .subscribe((epicObjs) => this.sendSubscribeMsg(epicObjs.map(({ epic }) => epic)));
+      .subscribe();
 
     this.onMessage$().subscribe((epicEvent) => {
       const epicObjs = this.epicObjs$.getValue();
 
       for (let epicObj of epicObjs) {
-        const now = new Date();
         const key = this.getKey(epicObj.epic, epicObj.interval);
 
-        if (
-          epicObj.epic === epicEvent.epic &&
-          now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 0 &&
-          !!this.emitters[key]
-        ) {
-          if (epicObj.interval === CapComTimeIntervals.MINUTE) {
-            this.emitters[key].next(epicEvent.data);
-          } else {
-            if (this.epicTimeToLastPrice[key]) {
-              this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
-              this.emitters[key].next(this.epicTimeToLastPrice[key]);
+        const now = new Date();
+
+        try {
+
+          if (
+            epicObj.epic === epicEvent.epic &&
+            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 0 &&
+            !!this.emitters[key]
+          ) {
+            if (epicObj.interval === CapComTimeIntervals.MINUTE) {
+              this.emitters[key].next(epicEvent.data);
+            } else {
+              if (this.epicTimeToLastPrice[key]) {
+                this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
+                this.emitters[key].next(this.epicTimeToLastPrice[key]);
+              }
             }
           }
-        }
-        if (
-          epicObj.epic === epicEvent.epic &&
-          now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 1
-        ) {
-          this.resetEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
-        } else if (
-          epicObj.epic === epicEvent.epic &&
-          now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] !== 0
-        ) {
-          this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
+          if (
+            epicObj.epic === epicEvent.epic &&
+            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 1
+          ) {
+            this.resetEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
+          } else if (
+            epicObj.epic === epicEvent.epic &&
+            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] !== 0
+          ) {
+            this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
+          }
+        } catch(e) {
+          console.error(e);
+          this.emitters[key].error(e);
         }
       }
+
     });
   }
 
@@ -141,19 +160,22 @@ export class CapitalComWebsocket {
     });
   }
 
-  private sendSubscribeMsg(epics: string[]) {
-    this.ws?.send(
-      JSON.stringify({
-        destination: 'OHLCMarketData.subscribe',
-        cst: this.session$.getValue().CST,
-        securityToken: this.session$.getValue().X_SECURITY_TOKEN,
-        payload: {
-          epics,
-          resolution: CapComTimeIntervals.MINUTE,
-          type: CapComCandleType.classic,
-        },
-      })
-    );
+  private sendSubscribeMsg(epics: string[], session: SessionKeys): Observable<void> {
+    return new Observable((observer) => {
+      this.ws?.send(
+        JSON.stringify({
+          destination: 'OHLCMarketData.subscribe',
+          cst: session.CST,
+          securityToken: session.X_SECURITY_TOKEN,
+          payload: {
+            epics,
+            resolution: CapComTimeIntervals.MINUTE,
+            type: CapComCandleType.classic,
+          },
+        })
+      );
+      observer.next();
+    });
   }
 
   private runSessionRenewalInterval(): void {
