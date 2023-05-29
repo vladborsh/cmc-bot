@@ -200,7 +200,7 @@ export class AssetWatchListProcessor {
     if (data?.alerts?.length) {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
-      this.logger?.info({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame}`});
+      this.logger?.info({ chatId, message: `[alert]: ${watchListItem.name} ${watchListItem.timeFrame} ${data?.alerts.join('')}`});
 
       await this.bot.sendPhoto(chatId, img, {
         caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame, watchListItem.exchange)} ${data?.alerts.join(
