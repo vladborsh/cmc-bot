@@ -5,14 +5,20 @@ import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
 import { EnvConfig } from "../../env-config";
 import { GeneralTimeIntervals } from "../../enums";
 import { TechIndicatorService } from "../../indicators/tech-indicator-service";
+import { Logger } from 'winston';
+import { BotLogger } from "../../utils/bot-logger";
 
 export class IndicesChartAction {
+  private logger: Logger | undefined;
+
   constructor(
     private envConfig: EnvConfig,
     private dynamicConfig: DynamicConfig,
     private capitalComClient: CapitalComClient,
     private bot: TelegramBot,
-  ) {}
+  ) {
+    this.logger = BotLogger.getInstance(envConfig);
+  }
 
   public async execute(chatId: TelegramBot.ChatId) {
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -38,8 +44,7 @@ export class IndicesChartAction {
         await this.bot.sendPhoto(chatId, img, { caption: `${asset} price chart` });
       }
     } catch (e) {
-      console.error(`error during chart indices chart generation`, e);
-      await this.bot.sendMessage(chatId, `Somethings goes wrong with indices request`);
+      throw new Error(`Error during chart indices chart generation: ${e}`);
     }
   }
 }

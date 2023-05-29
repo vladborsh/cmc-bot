@@ -12,13 +12,14 @@ import { AssetWatchListProcessor } from '../exchange/asset-watch-list-processor'
 import { BinanceClient } from '../exchange/binance-client';
 import { botPromptStates } from './bot-prompt-states.config';
 import { CapitalComClient } from '../exchange/capital-com-client';
-
+import { BotLogger } from '../utils/bot-logger';
+import { WatchListLogger } from '../utils/watchlist-logger';
+import { CapitalComWebsocket } from '../exchange/capital-com-websocket';
+import { CapitalComSession } from '../exchange/capital-com-session';
 
 const botStates: Record<string, StateMachine.Service<any, any>> = {};
 
-async function getBotState(
-  chatId: TelegramBot.ChatId,
-): Promise<StateMachine.Service<any, any>> {
+async function getBotState(chatId: TelegramBot.ChatId): Promise<StateMachine.Service<any, any>> {
   const dynamoDbClient = DynamoDBClient.getInstance(EnvConfig.getInstance());
   const savedState = await dynamoDbClient.getUserState(chatId);
   const stateMachine = createBotState(savedState?.dialogState);
@@ -32,27 +33,35 @@ async function techIndicatorServiceHealthCheck(envConfig: EnvConfig) {
   const techIndicator = TechIndicatorService.getInstance(envConfig);
   const healthy = await techIndicator.health();
 
-  console.info(`[INFO] tech-indicator-service health: ${healthy}`);
-
   return healthy;
 }
 
 export async function runTelegramBot(envConfig: EnvConfig) {
-  if (!envConfig.TG_TOKEN) {
-    console.error('TG token was not provided');
-    return;
-  }
+  const logger = BotLogger.getInstance(envConfig);
+  const watcherLogger = WatchListLogger.getInstance(envConfig);
   const dynamoDbClient = DynamoDBClient.getInstance(envConfig);
   const dynamicConfig = DynamicConfig.getInstance(envConfig);
-  const bot = new TelegramBot(envConfig.TG_TOKEN, { polling: true });
-  await techIndicatorServiceHealthCheck(envConfig);
+
+  const bot = new TelegramBot(envConfig.TG_TOKEN || '', { polling: true });
   const binanceClient = BinanceClient.getInstance(envConfig);
-  const capitalComClient = CapitalComClient.getInstance(envConfig);
+  const capitalComSession = CapitalComSession.getInstance(envConfig);
+  const capitalComWebsocket = CapitalComWebsocket.getInstance(
+    envConfig,
+    capitalComSession.session$,
+    () => capitalComSession.checkAndRenewSession(),
+    watcherLogger
+  );
+  const capitalComClient = CapitalComClient.getInstance(
+    envConfig,
+    capitalComSession,
+    capitalComWebsocket
+  );
   const assetWatchList = AssetWatchListProcessor.getInstance(
+    envConfig,
     dynamoDbClient,
     TechIndicatorService.getInstance(envConfig),
     BinanceClient.getInstance(envConfig),
-    CapitalComClient.getInstance(envConfig),
+    capitalComClient,
     dynamicConfig,
     bot
   );
@@ -60,46 +69,37 @@ export async function runTelegramBot(envConfig: EnvConfig) {
   await binanceClient.init();
   await assetWatchList.init();
 
+  try {
+    await techIndicatorServiceHealthCheck(envConfig);
+  } catch (e) {
+    logger.error({ message: 'tech indicator hea;th check fails' });
+  }
+
   bot.on('message', async (message: TelegramBot.Message) => {
-    console.log(`[${message.date}] ${message.text}`);
+    logger.info({ chatId: message.chat.id, message: `[command] ${message.text}` });
 
     if (!message.text) {
       return;
     }
 
     if (!botStates[message.chat.id]) {
-      botStates[message.chat.id] = await getBotState(
-        message.chat.id
-      );
+      botStates[message.chat.id] = await getBotState(message.chat.id);
     }
 
     if (message.text === '/start') {
-      await dynamoDbClient.updateDialogState(
-        message.chat.id.toString(),
-        BotStates.INITIAL,
-      );
+      await dynamoDbClient.updateDialogState(message.chat.id.toString(), BotStates.INITIAL);
 
       botStates[message.chat.id].send(BotTransitions.BACK_TO_START);
 
-      stateActions[BotStates.INITIAL](
-        bot,
-        message,
-        botStates[message.chat.id]
-      );
+      stateActions[BotStates.INITIAL](bot, message, botStates[message.chat.id]);
       return;
     }
 
     try {
       let transition: BotTransitions | undefined = botMessageTextToState[message.text];
 
-      if (
-        !transition &&
-        !botPromptStates.includes(botStates[message.chat.id].state.value)
-      ) {
-        await bot.sendMessage(
-          message.chat.id,
-          `Unknown command for me`,
-        );
+      if (!transition && !botPromptStates.includes(botStates[message.chat.id].state.value)) {
+        await bot.sendMessage(message.chat.id, `Unknown command for me`);
 
         transition = BotTransitions.BACK_TO_START;
       }
@@ -115,19 +115,12 @@ export async function runTelegramBot(envConfig: EnvConfig) {
 
         await dynamoDbClient.updateDialogState(message.chat.id.toString(), newState);
 
-        await stateActions[newState](
-          bot,
-          message,
-          botStates[message.chat.id]
-        );
+        await stateActions[newState](bot, message, botStates[message.chat.id]);
       } while (newState !== botStates[message.chat.id].state.value);
     } catch (error) {
-      console.error('Error while handling command:', error);
+      logger.error({ chatId: message.chat.id, message: `Error while handling command: ${error}`});
 
-      await bot.sendMessage(
-        message.chat.id,
-        `I'm sorry, something happens during processing...`,
-      );
+      await bot.sendMessage(message.chat.id, `I'm sorry, something happens during processing...`);
 
       if (botStates[message.chat.id]) {
         botStates[message.chat.id].send(BotTransitions.BACK_TO_START);

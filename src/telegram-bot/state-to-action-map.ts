@@ -26,6 +26,40 @@ import { SelectNewsAction } from './actions/select-news-action';
 import { AskAboutNewsMessageAction } from './actions/ask-about-news-message-action';
 import { IndicesChartAction } from './actions/indices-chart-actions';
 import { BtcChartAction } from './actions/btc-chart-action';
+import { CapitalComSession } from '../exchange/capital-com-session';
+import { CapitalComWebsocket } from '../exchange/capital-com-websocket';
+import { WatchListLogger } from '../utils/watchlist-logger';
+
+function getDependencies() {
+  const envConfig = EnvConfig.getInstance();
+  const watcherLogger = WatchListLogger.getInstance(envConfig);
+  const dynamicConfig = DynamicConfig.getInstance(envConfig);
+  const dynamoDBClient = DynamoDBClient.getInstance(envConfig);
+  const binanceClient = BinanceClient.getInstance(envConfig);
+  const capitalComSession = CapitalComSession.getInstance(envConfig);
+  const capitalComWebsocket = CapitalComWebsocket.getInstance(
+    envConfig,
+    capitalComSession.session$,
+    () => capitalComSession.checkAndRenewSession(),
+    watcherLogger
+  );
+  const capitalComClient = CapitalComClient.getInstance(
+    envConfig,
+    capitalComSession,
+    capitalComWebsocket
+  );
+
+  return {
+    envConfig,
+    watcherLogger,
+    dynamicConfig,
+    dynamoDBClient,
+    binanceClient,
+    capitalComSession,
+    capitalComWebsocket,
+    capitalComClient,
+  };
+}
 
 export const stateActions: Record<BotStates, BotStateHandler> = {
   [BotStates.INITIAL]: async (bot: TelegramBot, message: TelegramBot.Message) => {
@@ -59,14 +93,12 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
-      const envConfig = EnvConfig.getInstance();
-      const binanceClient = BinanceClient.getInstance(envConfig);
-      const capitalComClient = CapitalComClient.getInstance(envConfig);
+      const deps = getDependencies();
       const action = new FetchAssetChartAction(
-        envConfig,
-        DynamicConfig.getInstance(envConfig),
-        binanceClient,
-        capitalComClient,
+        deps.envConfig,
+        DynamicConfig.getInstance(deps.envConfig),
+        deps.binanceClient,
+        deps.capitalComClient,
         bot
       );
       await action.execute(message);
@@ -115,24 +147,21 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
-      const envConfig = EnvConfig.getInstance();
-      const dynamicConfig = DynamicConfig.getInstance(envConfig);
-      const dynamoDBClient = DynamoDBClient.getInstance(envConfig);
-      const binanceClient = BinanceClient.getInstance(envConfig);
-      const capitalComClient = CapitalComClient.getInstance(envConfig);
+      const deps = getDependencies();
       const assetWatchListProcessor = AssetWatchListProcessor.getInstance(
-        dynamoDBClient,
-        TechIndicatorService.getInstance(envConfig),
-        binanceClient,
-        capitalComClient,
-        dynamicConfig,
+        deps.envConfig,
+        deps.dynamoDBClient,
+        TechIndicatorService.getInstance(deps.envConfig),
+        deps.binanceClient,
+        deps.capitalComClient,
+        deps.dynamicConfig,
         bot
       );
       const action = new RemoveWatchlistAssetAction(
-        envConfig,
-        dynamicConfig,
+        deps.envConfig,
+        deps.dynamicConfig,
         bot,
-        dynamoDBClient,
+        deps.dynamoDBClient,
         assetWatchListProcessor
       );
       await action.execute(message);
@@ -165,24 +194,21 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
       return;
     }
     try {
-      const envConfig = EnvConfig.getInstance();
-      const dynamicConfig = DynamicConfig.getInstance(envConfig);
-      const dynamoDBClient = DynamoDBClient.getInstance(envConfig);
-      const binanceClient = BinanceClient.getInstance(envConfig);
-      const capitalComClient = CapitalComClient.getInstance(envConfig);
+      const deps = getDependencies();
       const assetWatchListProcessor = AssetWatchListProcessor.getInstance(
-        dynamoDBClient,
-        TechIndicatorService.getInstance(envConfig),
-        binanceClient,
-        capitalComClient,
-        dynamicConfig,
+        deps.envConfig,
+        deps.dynamoDBClient,
+        TechIndicatorService.getInstance(deps.envConfig),
+        deps.binanceClient,
+        deps.capitalComClient,
+        deps.dynamicConfig,
         bot
       );
       const action = new AddAssetToWatchlistAction(
-        envConfig,
-        dynamicConfig,
+        deps.envConfig,
+        deps.dynamicConfig,
         bot,
-        dynamoDBClient,
+        deps.dynamoDBClient,
         assetWatchListProcessor
       );
       await action.execute(message);
@@ -240,10 +266,13 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     message: TelegramBot.Message,
     state: StateMachine.Service<any, any>
   ) => {
-    const envConfig = EnvConfig.getInstance();
-    const dynamicConfig = DynamicConfig.getInstance(envConfig);
-    const capitalComClient = CapitalComClient.getInstance(envConfig);
-    const action = new IndicesChartAction(envConfig, dynamicConfig, capitalComClient, bot);
+    const deps = getDependencies();
+    const action = new IndicesChartAction(
+      deps.envConfig,
+      deps.dynamicConfig,
+      deps.capitalComClient,
+      bot
+    );
     await action.execute(message.chat.id);
     state.send(BotTransitions.INDICES_SELECTED);
   },

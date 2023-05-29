@@ -25,6 +25,7 @@ import {
 } from './configs/capital-com-client.config';
 import { WebSocket } from 'ws';
 import { BidAsk, EpicDataWSEvent, EpicObject } from './cap-com.interfaces';
+import { Logger } from 'winston';
 
 export class CapitalComWebsocket {
   private ws: WebSocket | undefined;
@@ -32,12 +33,28 @@ export class CapitalComWebsocket {
   private epicTimeToLastPrice: Record<string, CandleChartData> = {};
   private epicToBidAsk: Record<string, BidAsk> = {};
   private emitters: Record<string, Subject<CandleChartData>> = {};
+  static instance: CapitalComWebsocket;
 
-  constructor(
+  private constructor(
     private envConfig: EnvConfig,
     private session$: BehaviorSubject<SessionKeys>,
-    private checkAndRenewSession: Function
+    private checkAndRenewSession: Function,
+    private logger: Logger,
   ) {}
+
+
+  public static getInstance(
+    envConfig: EnvConfig,
+    session$: BehaviorSubject<SessionKeys>,
+    checkAndRenewSession: Function,
+    logger: Logger,
+    ): CapitalComWebsocket {
+    if (!this.instance) {
+      this.instance = new CapitalComWebsocket(envConfig, session$, checkAndRenewSession, logger);
+    }
+
+    return this.instance;
+  }
 
   public init(): void {
     this.runSessionRenewalInterval();
@@ -92,7 +109,7 @@ export class CapitalComWebsocket {
             this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
           }
         } catch(e) {
-          console.error(e);
+          this.logger.error({ message: `websocket: ${e}`});
           this.emitters[key].error(e);
         }
       }

@@ -19,12 +19,16 @@ import { DynamicConfig } from '../dynamic-config';
 import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
 import { CapitalComClient } from './capital-com-client';
 import { IExchangeClient } from '../interfaces/exchange-client.interface';
+import { Logger } from 'winston';
+import { WatchListLogger } from '../utils/watchlist-logger';
+import { EnvConfig } from '../env-config';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;
   private dynamicChatIdToWatchListMap$ = new BehaviorSubject<Record<string, WatchListItem[]>>({});
   private onTerminate$ = new Subject<void>();
   private chatIdToHistoryCandles: Record<string, Record<string, CandleChartData[]>> = {};
+  private logger: Logger | undefined;
 
   watchListItemToExchange: Record<Exchange, IExchangeClient> = {
     [Exchange.binance]: this.binanceClient,
@@ -32,15 +36,19 @@ export class AssetWatchListProcessor {
   };
 
   private constructor(
+    envConfig: EnvConfig,
     private dynamoDBClient: DynamoDBClient,
     private techIndicatorService: TechIndicatorService,
     private binanceClient: BinanceClient,
     private capitalComClient: CapitalComClient,
     private dynamicConfig: DynamicConfig,
     private bot: TelegramBot
-  ) {}
+  ) {
+    this.logger = WatchListLogger.getInstance(envConfig);
+  }
 
   public static getInstance(
+    envConfig: EnvConfig,
     dynamoDBClient: DynamoDBClient,
     techIndicatorService: TechIndicatorService,
     binanceClient: BinanceClient,
@@ -50,6 +58,7 @@ export class AssetWatchListProcessor {
   ): AssetWatchListProcessor {
     if (!this.instance) {
       this.instance = new AssetWatchListProcessor(
+        envConfig,
         dynamoDBClient,
         techIndicatorService,
         binanceClient,
@@ -126,9 +135,6 @@ export class AssetWatchListProcessor {
   private runSubscription(): void {
     this.dynamicChatIdToWatchListMap$
       .pipe(
-        tap((chatIdToWatchListMap) => {
-          console.info(chatIdToWatchListMap);
-        }),
         switchMap((chatIdToWatchListMap) =>
           combineLatest(
             Object.entries(chatIdToWatchListMap).map(([chatId, watchList]) =>
@@ -165,6 +171,7 @@ export class AssetWatchListProcessor {
     chatId: string,
     watchListItem: WatchListItem
   ): Promise<void> {
+    this.logger?.info({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame}`});
     const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
     historyCandles.push(lastChartData);
     historyCandles.shift();
@@ -184,7 +191,7 @@ export class AssetWatchListProcessor {
       });
       data = response.data;
     } catch (e) {
-      console.error(e);
+      this.logger?.error({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame} ${e}` });
       return;
     }
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -192,6 +199,8 @@ export class AssetWatchListProcessor {
 
     if (data?.alerts?.length) {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
+
+      this.logger?.info({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame}`});
 
       await this.bot.sendPhoto(chatId, img, {
         caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame, watchListItem.exchange)} ${data?.alerts.join(

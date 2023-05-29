@@ -1,4 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
+import { Logger } from 'winston';
 import { DynamicConfig } from "../../dynamic-config";
 import { EnvConfig } from "../../env-config";
 import { DynamoDBClient } from "../../db/dynamo-db-client";
@@ -6,14 +7,19 @@ import { BinanceClient } from "../../exchange/binance-client";
 import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
 import { GeneralTimeIntervals } from "../../enums";
 import { TechIndicatorService } from "../../indicators/tech-indicator-service";
+import { BotLogger } from "../../utils/bot-logger";
 
 export class RenderCryptoChartsAction {
+  private logger: Logger | undefined;
+
   constructor(
     private envConfig: EnvConfig,
     private dynamicConfig: DynamicConfig,
     private bot: TelegramBot,
     private dynamoDbClient: DynamoDBClient,
-  ) {}
+  ) {
+    this.logger = BotLogger.getInstance(envConfig);
+  }
 
   public async execute(chatId: number) {
     const savedState = await this.dynamoDbClient.getUserState(chatId);
@@ -35,7 +41,7 @@ export class RenderCryptoChartsAction {
           continue;
         }
       } catch (e) {
-        console.error(e);
+        this.logger?.error({ chatId, message: `Symbol is not exist: ${e}`});
         break;
       }
 
@@ -52,8 +58,7 @@ export class RenderCryptoChartsAction {
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
-        console.error(`error during chart image generation: ${symbol}`);
-        console.log(e);
+        this.logger?.error({ chatId, message: `error during chart image generation: ${symbol}` });
       }
     }
 

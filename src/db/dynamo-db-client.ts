@@ -39,8 +39,7 @@ export class DynamoDBClient {
       const data = await this.docClient.scan(params).promise();
       return data.Items as UserState[];
     } catch (err) {
-      console.error('Unable to scan items. Error JSON:', JSON.stringify(err, null, 2));
-      throw new Error('Error while get all items');
+      throw new Error(`Error while get all items. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -54,8 +53,7 @@ export class DynamoDBClient {
       const data = await this.docClient.get(params).promise();
       return data.Item as UserState;
     } catch (err) {
-      console.error('Unable to read item. Error JSON:', JSON.stringify(err, null, 2));
-      throw new Error('Error while get user state');
+      throw new Error(`Error while get user state. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -68,8 +66,7 @@ export class DynamoDBClient {
         .update(this.updateUpdateItemInput<UserState>(chatId, 'dialogState', dialogState))
         .promise();
     } catch (err) {
-      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
-      throw new Error('Error while update user state');
+      throw new Error(`Error while update dialog state. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -86,8 +83,7 @@ export class DynamoDBClient {
     try {
       await this.updateWatchList(chatId, [...old, watchListItem]);
     } catch (err) {
-      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
-      throw new Error('Error while add item to watch list');
+      throw new Error(`Error while add item to watch list. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -101,8 +97,7 @@ export class DynamoDBClient {
     try {
       await this.updateWatchList(chatId, old.filter(item => !(item.name == watchListItem.name && item.timeFrame == watchListItem.timeFrame)));
     } catch (err) {
-      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
-      throw new Error('Error while add item to watch list');
+      throw new Error(`Error while remove item from watch list. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -115,7 +110,7 @@ export class DynamoDBClient {
         .update(this.updateUpdateItemInput<UserState>(chatId, 'watchList', watchList))
         .promise();
     } catch (err) {
-      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error(`Error while update watch list. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -130,7 +125,7 @@ export class DynamoDBClient {
         )
         .promise();
     } catch (err) {
-      console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error(`Error while update last selected crypto. ${JSON.stringify(err, null, 2)}`);
     }
   }
 
@@ -145,7 +140,7 @@ export class DynamoDBClient {
     try {
       await this.docClient.put(params).promise();
     } catch (err) {
-      console.error('Unable to write item. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error(`Error while save user state. ${JSON.stringify(err, null, 2)}`);
     }
   }
 

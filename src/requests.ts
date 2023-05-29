@@ -49,7 +49,7 @@ export class Requests {
         newsByAsset[asset] = news;
         await delay(1000); // add a delay of 1 second between each API call
       } catch (error) {
-        console.error(`Error fetching news for ${cryptoAssets[i]}:`, error);
+        throw new Error(`Error fetching news for ${cryptoAssets[i]}: ${error}`);
       }
     }
     return newsByAsset;

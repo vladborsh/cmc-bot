@@ -33,7 +33,6 @@ export class DynamicConfig {
     return new Promise((resolve, reject) => {
       this.s3.getObject(getOmitTokens, (err, data) => {
         if (err) {
-          console.error(err);
           reject(err);
           return;
         }

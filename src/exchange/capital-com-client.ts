@@ -14,76 +14,32 @@ import { mapGeneralTimeIntervalToCapCom } from './configs/capital-com-client.con
 import { CapitalComMarketMarketData } from './configs/capital-com-market-data.interface';
 import { getFromToDate, mapMarketDataToChartData } from './configs/capital-com.helpers';
 import { CapitalComWebsocket } from './capital-com-websocket';
-
+import { Logger } from 'winston';
+import { CapitalComSession } from './capital-com-session';
 export class CapitalComClient implements IExchangeClient {
-  private SESSION_LIFETIME_MINUTES = 9;
-  private session$ = new BehaviorSubject<SessionKeys>({
-    CST: '',
-    X_SECURITY_TOKEN: '',
-  });
-  private sessionStartTime: number = 0;
-  private webSocketCtrl = new CapitalComWebsocket(this.envConfig, this.session$, () => this.checkAndRenewSession());
   static instance: CapitalComClient;
 
-  private constructor(private envConfig: EnvConfig) {}
+  private constructor(
+    private envConfig: EnvConfig,
+    private capitalComSession: CapitalComSession,
+    private capitalComWebsocket: CapitalComWebsocket
+  ) {}
 
-  public static getInstance(envConfig: EnvConfig): CapitalComClient {
+  public static getInstance(
+    envConfig: EnvConfig,
+    capitalComSession: CapitalComSession,
+    capitalComWebsocket: CapitalComWebsocket
+  ): CapitalComClient {
     if (!this.instance) {
-      this.instance = new CapitalComClient(envConfig);
+      this.instance = new CapitalComClient(envConfig, capitalComSession, capitalComWebsocket);
     }
 
     return this.instance;
   }
 
-  public async encryptKeys(): Promise<CapComEncryptionKey> {
-    const encryptionKeyResponse: AxiosResponse<CapComEncryptionKey> = await axios.get(
-      `${this.envConfig.CAPITAL_COM_URL}api/v1/session/encryptionKey`,
-      {
-        headers: {
-          'X-CAP-API-KEY': this.envConfig.CAPITAL_COM_API_KEY,
-        },
-      }
-    );
-
-    return encryptionKeyResponse.data;
-  }
-
   public async init(): Promise<void> {
-    await this.renewSession();
-
-    this.webSocketCtrl.init();
-  }
-
-  public async renewSession(): Promise<void> {
-    const session: AxiosResponse<SessionKeys> = await axios.post(
-      `${this.envConfig.CAPITAL_COM_URL}api/v1/session`,
-      {
-        identifier: this.envConfig.CAPITAL_COM_IDENTIFIER,
-        password: this.envConfig.CAPITAL_COM_CUSTOM_PASS,
-      },
-      {
-        headers: {
-          'X-CAP-API-KEY': this.envConfig.CAPITAL_COM_API_KEY,
-        },
-      }
-    );
-
-    this.sessionStartTime = Date.now();
-    this.session$.next({
-      CST: session.headers['cst'],
-      X_SECURITY_TOKEN: session.headers['x-security-token'],
-    });
-  }
-
-  public async checkAndRenewSession(): Promise<void> {
-    if (
-      !this.session$.getValue().CST ||
-      !this.session$.getValue().X_SECURITY_TOKEN ||
-      differenceInMinutes(new Date(), new Date(this.sessionStartTime)) >=
-        this.SESSION_LIFETIME_MINUTES
-    ) {
-      await this.renewSession();
-    }
+    await this.capitalComSession.renewSession();
+    this.capitalComWebsocket.init();
   }
 
   public async getCandles(
@@ -91,7 +47,7 @@ export class CapitalComClient implements IExchangeClient {
     interval: GeneralTimeIntervals,
     limit: number
   ): Promise<CandleChartData[]> {
-    await this.checkAndRenewSession();
+    await this.capitalComSession.checkAndRenewSession();
 
     const [from, to] = getFromToDate(mapGeneralTimeIntervalToCapCom[interval], limit);
 
@@ -99,8 +55,8 @@ export class CapitalComClient implements IExchangeClient {
       `${this.envConfig.CAPITAL_COM_URL}api/v1/prices/${symbol}`,
       {
         headers: {
-          'X-SECURITY-TOKEN': this.session$.getValue().X_SECURITY_TOKEN,
-          CST: this.session$.getValue().CST,
+          'X-SECURITY-TOKEN': this.capitalComSession.session$.getValue().X_SECURITY_TOKEN,
+          CST: this.capitalComSession.session$.getValue().CST,
         },
         params: {
           resolution: mapGeneralTimeIntervalToCapCom[interval],
@@ -118,11 +74,11 @@ export class CapitalComClient implements IExchangeClient {
     asset: string,
     interval: GeneralTimeIntervals
   ): Observable<CandleChartData> {
-    return this.webSocketCtrl.getCandlesStream(asset, interval);
+    return this.capitalComWebsocket.getCandlesStream(asset, interval);
   }
 
   public async getMarketData(): Promise<CapitalComMarketMarketData> {
-    if (!this.session$.getValue()) {
+    if (!this.capitalComSession.session$.getValue()) {
       throw new Error('Capital.com session was not started');
     }
 
@@ -130,8 +86,8 @@ export class CapitalComClient implements IExchangeClient {
       `${this.envConfig.CAPITAL_COM_URL}api/v1/marketnavigation`,
       {
         headers: {
-          'X-SECURITY-TOKEN': this.session$.getValue().X_SECURITY_TOKEN,
-          CST: this.session$.getValue().CST,
+          'X-SECURITY-TOKEN': this.capitalComSession.session$.getValue().X_SECURITY_TOKEN,
+          CST: this.capitalComSession.session$.getValue().CST,
         },
       }
     );
@@ -140,7 +96,7 @@ export class CapitalComClient implements IExchangeClient {
   }
 
   public async getMarketSearch(search: string): Promise<any> {
-    if (!this.session$.getValue()) {
+    if (!this.capitalComSession.session$.getValue()) {
       throw new Error('Capital.com session was not started');
     }
 
@@ -148,8 +104,8 @@ export class CapitalComClient implements IExchangeClient {
       `${this.envConfig.CAPITAL_COM_URL}api/v1/markets?searchTerm=${search}`,
       {
         headers: {
-          'X-SECURITY-TOKEN': this.session$.getValue().X_SECURITY_TOKEN,
-          CST: this.session$.getValue().CST,
+          'X-SECURITY-TOKEN': this.capitalComSession.session$.getValue().X_SECURITY_TOKEN,
+          CST: this.capitalComSession.session$.getValue().CST,
         },
       }
     );
