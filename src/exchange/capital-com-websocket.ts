@@ -38,7 +38,7 @@ export class CapitalComWebsocket {
   private constructor(
     private envConfig: EnvConfig,
     private session$: BehaviorSubject<SessionKeys>,
-    private checkAndRenewSession: Function,
+    private checkAndRenewSession: () => Promise<void>,
     private logger: Logger,
   ) {}
 
@@ -46,7 +46,7 @@ export class CapitalComWebsocket {
   public static getInstance(
     envConfig: EnvConfig,
     session$: BehaviorSubject<SessionKeys>,
-    checkAndRenewSession: Function,
+    checkAndRenewSession: () => Promise<void>,
     logger: Logger,
     ): CapitalComWebsocket {
     if (!this.instance) {
@@ -202,7 +202,13 @@ export class CapitalComWebsocket {
 
   private runSessionRenewalInterval(): void {
     setInterval(async () => {
-      await this.checkAndRenewSession();
+      this.logger.info({message: 'session renewal'});
+
+      try {
+        await this.checkAndRenewSession();
+      } catch(e) {
+        this.logger.error({message: `Error session renewal: ${e} `});
+      }
 
       this.ws?.send(
         JSON.stringify({
