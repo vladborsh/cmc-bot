@@ -8,7 +8,7 @@ export class AcceptAssetNameChartAction {
   public async execute(chatId: TelegramBot.ChatId): Promise<void> {
     await this.bot.sendMessage(
       chatId,
-      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(m5, m15, h1, h4\\), like \`\`\` btcusdt m5\`\`\` or just type \`stop\` if you would like back to menu`,
+      `What crypto do you prefer? Please type space\\-separated text with asset name and timeframe \\(m5, m15, h1, h4\\), like \` btcusdt m5\` or \`gu m15\` \\(gbpusd pair\\)\\. Just just type \`stop\` if you would like back to menu`,
       {
         parse_mode: 'MarkdownV2',
       }

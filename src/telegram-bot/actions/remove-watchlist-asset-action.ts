@@ -6,6 +6,7 @@ import { AssetWatchListProcessor } from '../../exchange/asset-watch-list-process
 import { validateChartForSelectedCryptoCommand } from '../action-helpers';
 import { Exchange } from '../../interfaces/user-state.interface';
 import { GeneralTimeIntervals } from '../../enums';
+import { ParsedAssetInfo } from '../../interfaces/parsed-asset-info.interface';
 
 export class RemoveWatchlistAssetAction {
   constructor(
@@ -17,35 +18,35 @@ export class RemoveWatchlistAssetAction {
   ) {}
 
   public async execute(command: TelegramBot.Message) {
+    let assetInfo: ParsedAssetInfo;
     if (!command.text) {
       throw new Error(`invalid command: "${command.text}"`);
     }
     try {
-      await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
+      assetInfo = await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
     }
-    const [asset, timeFrame, exchange] = command.text.trim().split(' ');
 
     try {
       await this.dynamoDbClient.removeItemFromWatchList(command.chat.id, {
-        name: asset.toUpperCase(),
-        timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as Exchange) ?? Exchange.binance,
+        name: assetInfo.asset.toUpperCase(),
+        timeFrame: assetInfo.timeFrame,
+        exchange: assetInfo.exchange ?? Exchange.binance,
       });
 
       this.assetWatchListProcessor.removeWatchListItem(command.chat.id, {
-        name: asset.toUpperCase(),
-        timeFrame: timeFrame as GeneralTimeIntervals,
-        exchange: (exchange as Exchange) ?? Exchange.binance,
+        name: assetInfo.asset.toUpperCase(),
+        timeFrame: assetInfo.timeFrame,
+        exchange: assetInfo.exchange ?? Exchange.binance,
       });
 
       const watchListMessage = await this.getWatchListMessage(command.chat.id);
 
       this.bot.sendMessage(
         command.chat.id,
-        `Everything is OK: ${asset} ${timeFrame} removed from watch list \n\n${watchListMessage}`
+        `Everything is OK: ${assetInfo.asset} ${assetInfo.timeFrame} removed from watch list \n\n${watchListMessage}`
       );
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);

@@ -1,12 +1,14 @@
-import TelegramBot from "node-telegram-bot-api";
-import { DynamicConfig } from "../../dynamic-config";
-import { CapitalComClient } from "../../exchange/capital-com-client";
-import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
-import { EnvConfig } from "../../env-config";
-import { GeneralTimeIntervals } from "../../enums";
-import { TechIndicatorService } from "../../indicators/tech-indicator-service";
+import TelegramBot from 'node-telegram-bot-api';
+import { DynamicConfig } from '../../dynamic-config';
+import { CapitalComClient } from '../../exchange/capital-com-client';
+import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
+import { EnvConfig } from '../../env-config';
+import { GeneralTimeIntervals } from '../../enums';
+import { TechIndicatorService } from '../../indicators/tech-indicator-service';
 import { Logger } from 'winston';
-import { BotLogger } from "../../utils/bot-logger";
+import { BotLogger } from '../../utils/bot-logger';
+import { getLinkText } from '../../ge-link-text.helper';
+import { Exchange } from '../../interfaces/user-state.interface';
 
 export class IndicesChartAction {
   private logger: Logger | undefined;
@@ -15,7 +17,7 @@ export class IndicesChartAction {
     private envConfig: EnvConfig,
     private dynamicConfig: DynamicConfig,
     private capitalComClient: CapitalComClient,
-    private bot: TelegramBot,
+    private bot: TelegramBot
   ) {
     this.logger = BotLogger.getInstance(envConfig);
   }
@@ -32,16 +34,18 @@ export class IndicesChartAction {
           dynamicConfigValues.CHART_HISTORY_SIZE
         );
 
-        const { data } = await TechIndicatorService.getInstance(
-          this.envConfig
-        ).getSMIndicator({
+        const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
           chartData: marketData,
           inputs: {
             isMidnightShown: true,
-          }
+          },
         });
+
         const img = chartCanvasRenderer.generateImage(marketData, data || {});
-        await this.bot.sendPhoto(chatId, img, { caption: `${asset} price chart` });
+        await this.bot.sendPhoto(chatId, img, {
+          caption: getLinkText(asset, GeneralTimeIntervals.h1, Exchange.capitalcom),
+          parse_mode: 'MarkdownV2',
+        });
       }
     } catch (e) {
       throw new Error(`Error during chart indices chart generation: ${e}`);

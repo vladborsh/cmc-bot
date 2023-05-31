@@ -6,7 +6,10 @@ import {
   Subject,
   catchError,
   filter,
+  interval,
+  map,
   switchMap,
+  timeInterval,
   withLatestFrom,
 } from 'rxjs';
 import {
@@ -39,16 +42,15 @@ export class CapitalComWebsocket {
     private envConfig: EnvConfig,
     private session$: BehaviorSubject<SessionKeys>,
     private checkAndRenewSession: () => Promise<void>,
-    private logger: Logger,
+    private logger: Logger
   ) {}
-
 
   public static getInstance(
     envConfig: EnvConfig,
     session$: BehaviorSubject<SessionKeys>,
     checkAndRenewSession: () => Promise<void>,
-    logger: Logger,
-    ): CapitalComWebsocket {
+    logger: Logger
+  ): CapitalComWebsocket {
     if (!this.instance) {
       this.instance = new CapitalComWebsocket(envConfig, session$, checkAndRenewSession, logger);
     }
@@ -63,13 +65,16 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
+        switchMap((epicObjs) =>
+          interval(60 * 60 * 1000).pipe(map(() => epicObjs))
+        ),
         withLatestFrom(this.session$),
         switchMap(([epicObjs, session]) =>
           this.sendSubscribeMsg(
             epicObjs.map(({ epic }) => epic),
             session
-          ),
-        ),
+          )
+        )
       )
       .subscribe();
 
@@ -82,7 +87,6 @@ export class CapitalComWebsocket {
         const now = new Date();
 
         try {
-
           if (
             epicObj.epic === epicEvent.epic &&
             now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 0 &&
@@ -108,12 +112,11 @@ export class CapitalComWebsocket {
           ) {
             this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
           }
-        } catch(e) {
-          this.logger.error({ message: `websocket: ${e}`});
+        } catch (e) {
+          this.logger.error({ message: `websocket: ${e}` });
           this.emitters[key].error(e);
         }
       }
-
     });
   }
 
@@ -123,7 +126,9 @@ export class CapitalComWebsocket {
   ): Observable<CandleChartData> {
     const timeframe = mapGeneralTimeIntervalToCapCom[interval];
     const epicObjs = this.epicObjs$.getValue();
-    const foundEpic = epicObjs.find((epicO) => epicO.epic === asset && epicO.interval === timeframe);
+    const foundEpic = epicObjs.find(
+      (epicO) => epicO.epic === asset && epicO.interval === timeframe
+    );
 
     if (!foundEpic) {
       this.epicObjs$.next([...this.epicObjs$.getValue(), { epic: asset, interval: timeframe }]);
@@ -202,12 +207,12 @@ export class CapitalComWebsocket {
 
   private runSessionRenewalInterval(): void {
     setInterval(async () => {
-      this.logger.info({message: 'session renewal'});
+      this.logger.info({ message: 'session renewal' });
 
       try {
         await this.checkAndRenewSession();
-      } catch(e) {
-        this.logger.error({message: `Error session renewal: ${e} `});
+      } catch (e) {
+        this.logger.error({ message: `Error session renewal: ${e} ` });
       }
 
       this.ws?.send(

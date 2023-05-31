@@ -7,6 +7,7 @@ import { VerticalPlotLine } from '../interfaces/charts/vertial-plot-line';
 import { HorizontalPlotLine } from '../interfaces/charts/horizontal-plot-line';
 import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
 import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
+import { PlotRectangle } from '../interfaces/charts/plot-rectangle';
 
 export class ChartCanvasRenderer {
   canvasWidth: number;
@@ -70,9 +71,9 @@ export class ChartCanvasRenderer {
     const priceRange = maxPrice - minPrice;
     const priceStep = priceRange / this.scaleStep;
 
-    candles.forEach((kline: CandleChartData, index: number) => {
-      this.renderCandle(kline, index, priceRange, minPrice, ctx);
-    });
+    if (chartDrawingsData.plotRectangles) {
+      this.renderRectangles(chartDrawingsData.plotRectangles, priceRange, minPrice, ctx);
+    }
 
     if (chartDrawingsData.plotShapes) {
       chartDrawingsData.plotShapes.forEach((plotShape) => {
@@ -115,6 +116,10 @@ export class ChartCanvasRenderer {
         this.renderHorizontalLine(line, priceRange, minPrice, ctx)
       );
     }
+
+    candles.forEach((kline: CandleChartData, index: number) => {
+      this.renderCandle(kline, index, priceRange, minPrice, ctx);
+    });
 
     this.renderPriceScale(maxPrice, priceStep, ctx);
 
@@ -160,6 +165,21 @@ export class ChartCanvasRenderer {
       } else if (plotLine.titleLocation === LineTitleLocation.LEFT_TOP) {
         ctx.fillText(plotLine.title, x1, y1 - 12);
       }
+    }
+  }
+
+  private renderRectangles(plotRectangles: PlotRectangle[], priceRange: number, minPrice: number, ctx: CanvasRenderingContext2D) {
+    for (const rectangle of plotRectangles) {
+      const x = this.backShift + rectangle.left * (this.candleWidth + this.candlePadding);
+      const y =
+        this.canvasPadding / 2 +
+        (1 - (rectangle.top - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+      const height =
+        ((rectangle.top - rectangle.bottom) / priceRange) * (this.canvasHeight - this.canvasPadding);
+      const width = (rectangle.right - rectangle.left) * (this.candleWidth + this.candlePadding);
+
+      ctx.fillStyle = '#f7caa8';
+      ctx.fillRect(x, y, width, height);
     }
   }
 

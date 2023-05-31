@@ -3,6 +3,8 @@ import { PlotLine } from '../../interfaces/charts/plot-line';
 import { PlotShape } from '../../interfaces/charts/plot-shape.interface';
 import { Plot } from '../../interfaces/charts/plot.interface';
 import { VerticalPlotLine } from '../../interfaces/charts/vertial-plot-line';
+import { PlotRectangle } from '../charts/plot-rectangle';
+import { PremDisc, Trend } from './sm-indicator-enums';
 
 export interface SmIndicatorResponse {
   errors?: string[];
@@ -16,4 +18,13 @@ export interface ChartDrawingsData {
   alerts?: string[];
   verticalLines?: VerticalPlotLine[];
   horizontalLines?: HorizontalPlotLine[];
+  plotRectangles?: PlotRectangle[];
+  insights?: SmIndicatorInsights;
+}
+
+export interface SmIndicatorInsights {
+  trend: Trend,
+  premDisc: PremDisc,
+  bearishBos: boolean,
+  bullishBos: boolean,
 }
