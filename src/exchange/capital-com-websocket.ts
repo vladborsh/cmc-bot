@@ -8,7 +8,9 @@ import {
   filter,
   interval,
   map,
+  startWith,
   switchMap,
+  tap,
   timeInterval,
   withLatestFrom,
 } from 'rxjs';
@@ -65,8 +67,9 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
-        switchMap((epicObjs) => interval(60 * 60 * 1000).pipe(map(() => epicObjs))),
+        switchMap((epicObjs) => interval(60 * 60 * 1000).pipe(map(() => epicObjs), startWith(epicObjs))),
         withLatestFrom(this.session$),
+        tap((v) => console.log(v)),
         switchMap(([epicObjs, session]) =>
           this.sendSubscribeMsg(
             epicObjs.map(({ epic }) => epic),
@@ -161,6 +164,7 @@ export class CapitalComWebsocket {
     return new Observable((observer) => {
       this.ws?.on('message', (data) => {
         const wsEvent: WSCapComMarketData = JSON.parse(data.toString());
+
         this.logger.info({
           message: `new message: ${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
         });
