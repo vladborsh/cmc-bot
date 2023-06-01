@@ -67,9 +67,7 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
-        switchMap((epicObjs) => interval(60 * 60 * 1000).pipe(map(() => epicObjs), startWith(epicObjs))),
         withLatestFrom(this.session$),
-        tap((v) => console.log(v)),
         switchMap(([epicObjs, session]) =>
           this.sendSubscribeMsg(
             epicObjs.map(({ epic }) => epic),
@@ -83,6 +81,8 @@ export class CapitalComWebsocket {
 
     this.onMessage$().subscribe((epicEvent) => {
       const epicObjs = this.epicObjs$.getValue();
+
+      this.logger.info({ message: JSON.stringify(epicEvent) });
 
       for (let epicObj of epicObjs) {
         const key = this.getKey(epicObj.epic, epicObj.interval);
@@ -163,40 +163,50 @@ export class CapitalComWebsocket {
   private onMessage$(): Observable<EpicDataWSEvent> {
     return new Observable((observer) => {
       this.ws?.on('message', (data) => {
-        const wsEvent: WSCapComMarketData = JSON.parse(data.toString());
+        let wsEvent: WSCapComMarketData;
+        try {
+          wsEvent = JSON.parse(data.toString());
+        } catch (e) {
+          this.logger.error(`ws-parse-error: ${e}`);
+          return;
+        }
 
         this.logger.info({
-          message: `new message: ${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
+          message: `ws-new-message: ${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
         });
 
-        if (wsEvent.destination === 'ohlc.event') {
-          const epic = wsEvent.payload.epic;
-          if (!this.epicToBidAsk[epic]) {
-            this.epicToBidAsk[epic] = {
-              bid: undefined,
-              ask: undefined,
-            };
-          }
+        try {
+          if (wsEvent.destination === 'ohlc.event') {
+            const epic = wsEvent.payload.epic;
+            if (!this.epicToBidAsk[epic]) {
+              this.epicToBidAsk[epic] = {
+                bid: undefined,
+                ask: undefined,
+              };
+            }
 
-          if (wsEvent.payload.priceType === CapitalComPriceType.ask) {
-            this.epicToBidAsk[epic].ask = wsEvent;
-          } else if (wsEvent.payload.priceType === CapitalComPriceType.bid) {
-            this.epicToBidAsk[epic].bid = wsEvent;
-          }
+            if (wsEvent.payload.priceType === CapitalComPriceType.ask) {
+              this.epicToBidAsk[epic].ask = wsEvent;
+            } else if (wsEvent.payload.priceType === CapitalComPriceType.bid) {
+              this.epicToBidAsk[epic].bid = wsEvent;
+            }
 
-          if (this.epicToBidAsk[epic].bid && this.epicToBidAsk[epic].ask) {
-            observer.next({
-              epic,
-              data: mapWSMarketDataToChartData(
-                this.epicToBidAsk[epic].bid as WSCapComMarketData,
-                this.epicToBidAsk[epic].ask as WSCapComMarketData
-              ),
-            });
-            this.epicToBidAsk[epic] = {
-              bid: undefined,
-              ask: undefined,
-            };
+            if (this.epicToBidAsk[epic].bid && this.epicToBidAsk[epic].ask) {
+              observer.next({
+                epic,
+                data: mapWSMarketDataToChartData(
+                  this.epicToBidAsk[epic].bid as WSCapComMarketData,
+                  this.epicToBidAsk[epic].ask as WSCapComMarketData
+                ),
+              });
+              this.epicToBidAsk[epic] = {
+                bid: undefined,
+                ask: undefined,
+              };
+            }
           }
+        } catch (e) {
+          this.logger.error(`ws-error-bid_ask: ${e}`)
         }
       });
     });
