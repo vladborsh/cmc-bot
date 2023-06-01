@@ -65,9 +65,7 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
-        switchMap((epicObjs) =>
-          interval(60 * 60 * 1000).pipe(map(() => epicObjs))
-        ),
+        switchMap((epicObjs) => interval(60 * 60 * 1000).pipe(map(() => epicObjs))),
         withLatestFrom(this.session$),
         switchMap(([epicObjs, session]) =>
           this.sendSubscribeMsg(
@@ -77,6 +75,8 @@ export class CapitalComWebsocket {
         )
       )
       .subscribe();
+
+    this.onError$().subscribe((err) => this.logger.error(err?.message));
 
     this.onMessage$().subscribe((epicEvent) => {
       const epicObjs = this.epicObjs$.getValue();
@@ -149,10 +149,21 @@ export class CapitalComWebsocket {
     });
   }
 
+  private onError$(): Observable<Error> {
+    return new Observable((observer) => {
+      this.ws?.on('error', (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
   private onMessage$(): Observable<EpicDataWSEvent> {
     return new Observable((observer) => {
       this.ws?.on('message', (data) => {
         const wsEvent: WSCapComMarketData = JSON.parse(data.toString());
+        this.logger.info({
+          message: `new message: ${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
+        });
 
         if (wsEvent.destination === 'ohlc.event') {
           const epic = wsEvent.payload.epic;
@@ -222,7 +233,7 @@ export class CapitalComWebsocket {
           securityToken: this.session$.getValue().X_SECURITY_TOKEN,
         })
       );
-    }, 60 * 1000);
+    }, 5 * 60 * 1000);
   }
 
   private setEpicTimeToLastPrice(
