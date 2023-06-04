@@ -52,7 +52,7 @@ export class FetchAssetChartAction {
       const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
         chartData: candles,
         inputs: {
-          isMidnightShown: true,
+          isEODShown: true,
           sessions: [
             {
               hourStart: 9,

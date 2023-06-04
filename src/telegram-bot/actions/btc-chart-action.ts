@@ -25,6 +25,7 @@ export class BtcChartAction {
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
       inputs: {
+        isEODShown: true,
         sessions: [
           {
             hourStart: 9,

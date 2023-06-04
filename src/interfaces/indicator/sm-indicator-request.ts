@@ -10,7 +10,7 @@ export interface SmIndicatorInputs {
   internalStructureLength?: number;
   highStructureLength?: number;
   sessions?: SmIndicatorSessions[];
-  isMidnightShown?: boolean;
+  isEODShown?: boolean;
 }
 
 interface SmIndicatorSessions {

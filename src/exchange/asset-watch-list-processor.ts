@@ -180,7 +180,7 @@ export class AssetWatchListProcessor {
       const response = await this.techIndicatorService.getSMIndicator({
         chartData: historyCandles,
         inputs: {
-          isMidnightShown: true,
+          isEODShown: true,
           sessions: [
             {
               hourStart: 9,

@@ -37,7 +37,7 @@ export class IndicesChartAction {
         const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
           chartData: marketData,
           inputs: {
-            isMidnightShown: true,
+            isEODShown: true,
           },
         });
 
