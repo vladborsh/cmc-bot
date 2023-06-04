@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { validateChartForSelectedCryptoCommand } from '../action-helpers';
+import { validateAssetName } from '../validate-asset-name';
 import { EnvConfig } from '../../env-config';
 import { DynamicConfig } from '../../dynamic-config';
 import { BinanceClient } from '../../exchange/binance-client';
@@ -32,7 +32,7 @@ export class FetchAssetChartAction {
       throw new Error(`invalid command: "${command.text}"`);
     }
     try {
-      assetInfo = await validateChartForSelectedCryptoCommand(command.text.trim(), this.envConfig);
+      assetInfo = await validateAssetName(command.text.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);

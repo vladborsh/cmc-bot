@@ -1,3 +1,5 @@
+import { Exchange } from './user-state.interface';
+
 export interface DynamicConfigValues {
   /* array of token symbols that we wan't to avoid in our analysis */
   OMIT_TOKENS: string[];
@@ -26,4 +28,6 @@ export interface DynamicConfigValues {
   CANVAS_WIDTH: number;
   CANVAS_CANDLE_WIDTH: number;
   CANVAS_CANDLE_PADDING: number;
+  ASSET_SHORTCUTS: Record<string, [string, Exchange]>;
+  EXCHANGE_SHORTCUTS: Record<string, Exchange>;
 }

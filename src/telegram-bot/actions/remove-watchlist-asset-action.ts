@@ -3,7 +3,7 @@ import { DynamicConfig } from '../../dynamic-config';
 import { EnvConfig } from '../../env-config';
 import { DynamoDBClient } from '../../db/dynamo-db-client';
 import { AssetWatchListProcessor } from '../../exchange/asset-watch-list-processor';
-import { validateChartForSelectedCryptoCommand } from '../action-helpers';
+import { validateAssetName } from '../validate-asset-name';
 import { Exchange } from '../../interfaces/user-state.interface';
 import { GeneralTimeIntervals } from '../../enums';
 import { ParsedAssetInfo } from '../../interfaces/parsed-asset-info.interface';
@@ -23,7 +23,7 @@ export class RemoveWatchlistAssetAction {
       throw new Error(`invalid command: "${command.text}"`);
     }
     try {
-      assetInfo = await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
+      assetInfo = await validateAssetName(command.text?.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);

@@ -1,9 +1,8 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { validateChartForSelectedCryptoCommand } from '../action-helpers';
+import { validateAssetName } from '../validate-asset-name';
 import { EnvConfig } from '../../env-config';
 import { DynamicConfig } from '../../dynamic-config';
 import { DynamoDBClient } from '../../db/dynamo-db-client';
-import { GeneralTimeIntervals } from '../../enums';
 import { Exchange } from '../../interfaces/user-state.interface';
 import { AssetWatchListProcessor } from '../../exchange/asset-watch-list-processor';
 import { ParsedAssetInfo } from '../../interfaces/parsed-asset-info.interface';
@@ -23,7 +22,7 @@ export class AddAssetToWatchlistAction {
       throw new Error(`invalid command: "${command.text}"`);
     }
     try {
-      assetInfo = await validateChartForSelectedCryptoCommand(command.text?.trim(), this.envConfig);
+      assetInfo = await validateAssetName(command.text?.trim(), this.envConfig);
     } catch (e) {
       this.bot.sendMessage(command.chat.id, `Error: ${e?.toString()}`);
       throw new Error(`error: "${e?.toString()}"`);
