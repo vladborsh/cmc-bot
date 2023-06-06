@@ -3,4 +3,5 @@ export interface PlotRectangle {
   right: number;
   top: number;
   bottom: number;
+  color?: string;
 }

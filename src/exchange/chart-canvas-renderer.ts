@@ -178,7 +178,7 @@ export class ChartCanvasRenderer {
         ((rectangle.top - rectangle.bottom) / priceRange) * (this.canvasHeight - this.canvasPadding);
       const width = (rectangle.right - rectangle.left) * (this.candleWidth + this.candlePadding);
 
-      ctx.fillStyle = '#f7caa8';
+      ctx.fillStyle = rectangle.color || '#bbbbbb55';
       ctx.fillRect(x, y, width, height);
     }
   }
