@@ -1,24 +1,22 @@
 import {
   BehaviorSubject,
-  EMPTY,
   Observable,
   Observer,
   Subject,
-  catchError,
+  combineLatest,
   filter,
-  interval,
-  map,
-  startWith,
   switchMap,
   tap,
-  timeInterval,
   withLatestFrom,
 } from 'rxjs';
+import axios, { AxiosResponse } from 'axios';
 import {
   CapComCandleType,
   CapComTimeIntervals,
   CapitalComPriceType,
   GeneralTimeIntervals,
+  LogErrorType,
+  LogMessageType,
 } from '../enums';
 import { EnvConfig } from '../env-config';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
@@ -31,6 +29,7 @@ import {
 import { WebSocket } from 'ws';
 import { BidAsk, EpicDataWSEvent, EpicObject } from './cap-com.interfaces';
 import { Logger } from 'winston';
+import { CapitalComSession } from './capital-com-session';
 
 export class CapitalComWebsocket {
   private ws: WebSocket | undefined;
@@ -42,19 +41,17 @@ export class CapitalComWebsocket {
 
   private constructor(
     private envConfig: EnvConfig,
-    private session$: BehaviorSubject<SessionKeys>,
-    private checkAndRenewSession: () => Promise<void>,
+    private capitalComSession: CapitalComSession,
     private logger: Logger
   ) {}
 
   public static getInstance(
     envConfig: EnvConfig,
-    session$: BehaviorSubject<SessionKeys>,
-    checkAndRenewSession: () => Promise<void>,
+    capitalComSession: CapitalComSession,
     logger: Logger
   ): CapitalComWebsocket {
     if (!this.instance) {
-      this.instance = new CapitalComWebsocket(envConfig, session$, checkAndRenewSession, logger);
+      this.instance = new CapitalComWebsocket(envConfig, capitalComSession, logger);
     }
 
     return this.instance;
@@ -67,34 +64,35 @@ export class CapitalComWebsocket {
       .pipe(
         switchMap(() => this.epicObjs$),
         filter((epicObjs) => !!epicObjs && !!epicObjs.length),
-        withLatestFrom(this.session$),
-        switchMap(([epicObjs, session]) =>
-          this.sendSubscribeMsg(
-            epicObjs.map(({ epic }) => epic),
-            session
-          )
-        )
+        withLatestFrom(this.capitalComSession.session$)
       )
-      .subscribe();
+      .subscribe(([epicObjs, session]) => {
+        this.sendSubscribeMsg(
+          epicObjs.map(({ epic }) => epic),
+          session
+        );
+      });
 
-    this.onError$().subscribe((err) => this.logger.error(err?.message));
+    this.onError$().subscribe((err) => {
+      this.logger.error({ type: LogErrorType.WS_ERROR, message: err?.message });
+    });
 
     this.onMessage$().subscribe((epicEvent) => {
       const epicObjs = this.epicObjs$.getValue();
 
-      this.logger.info({ message: JSON.stringify(epicEvent) });
+      this.logger.info({ type: LogMessageType.WS_EPIC_EVENT, message: `${epicEvent.epic}` });
 
-      for (let epicObj of epicObjs) {
-        const key = this.getKey(epicObj.epic, epicObj.interval);
+      try {
+        for (let epicObj of epicObjs) {
+          const key = this.getKey(epicObj.epic, epicObj.interval);
 
-        const now = new Date();
+          if (epicObj.epic !== epicEvent.epic || !this.emitters[key]) {
+            continue;
+          }
 
-        try {
-          if (
-            epicObj.epic === epicEvent.epic &&
-            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 0 &&
-            !!this.emitters[key]
-          ) {
+          const now = new Date();
+
+          if (now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 0) {
             if (epicObj.interval === CapComTimeIntervals.MINUTE) {
               this.emitters[key].next(epicEvent.data);
             } else {
@@ -104,21 +102,14 @@ export class CapitalComWebsocket {
               }
             }
           }
-          if (
-            epicObj.epic === epicEvent.epic &&
-            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 1
-          ) {
-            this.resetEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
-          } else if (
-            epicObj.epic === epicEvent.epic &&
-            now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] !== 0
-          ) {
+          if (now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] === 1) {
+            this.epicTimeToLastPrice[this.getKey(epicObj.epic, epicObj.interval)] = epicEvent.data;
+          } else if (now.getMinutes() % capitalComIntervalToMinutes[epicObj.interval] !== 0) {
             this.setEpicTimeToLastPrice(epicObj.epic, epicObj.interval, epicEvent.data);
           }
-        } catch (e) {
-          this.logger.error({ message: `websocket: ${e}` });
-          this.emitters[key].error(e);
         }
+      } catch (e) {
+        this.logger.error({ type: LogErrorType.WS_ON_MESSAGE_ERROR, message: e });
       }
     });
   }
@@ -164,19 +155,28 @@ export class CapitalComWebsocket {
     return new Observable((observer) => {
       this.ws?.on('message', (data) => {
         let wsEvent: WSCapComMarketData;
+
         try {
           wsEvent = JSON.parse(data.toString());
         } catch (e) {
-          this.logger.error(`ws-parse-error: ${e}`);
+          this.logger.error({ type: LogErrorType.WS_PARSE_ERROR, message: e });
           return;
         }
 
-        this.logger.info({
-          message: `ws-new-message: ${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
-        });
+        if (wsEvent.destination === 'OHLCMarketData.subscribe') {
+          this.logger.info({
+            type: LogMessageType.WS_NEW_MESSAGE,
+            message: `${wsEvent.destination}`,
+          });
+        }
 
         try {
           if (wsEvent.destination === 'ohlc.event') {
+            this.logger.info({
+              type: LogMessageType.WS_NEW_MESSAGE,
+              message: `${wsEvent.destination}, ${wsEvent?.payload?.priceType}, ${wsEvent?.payload?.epic}`,
+            });
+
             const epic = wsEvent.payload.epic;
             if (!this.epicToBidAsk[epic]) {
               this.epicToBidAsk[epic] = {
@@ -206,48 +206,47 @@ export class CapitalComWebsocket {
             }
           }
         } catch (e) {
-          this.logger.error(`ws-error-bid_ask: ${e}`)
+          this.logger.error({ type: LogErrorType.WS_BID_ASK_ERROR, message: e });
         }
       });
     });
   }
 
-  private sendSubscribeMsg(epics: string[], session: SessionKeys): Observable<void> {
-    return new Observable((observer) => {
-      this.ws?.send(
-        JSON.stringify({
-          destination: 'OHLCMarketData.subscribe',
-          cst: session.CST,
-          securityToken: session.X_SECURITY_TOKEN,
-          payload: {
-            epics,
-            resolution: CapComTimeIntervals.MINUTE,
-            type: CapComCandleType.classic,
-          },
-        })
-      );
-      observer.next();
-    });
+  private ping(): void {
+    this.ws?.send(
+      JSON.stringify({
+        destination: 'ping',
+        cst: this.capitalComSession.session$.getValue().CST,
+        securityToken: this.capitalComSession.session$.getValue().X_SECURITY_TOKEN,
+      })
+    );
+  }
+
+  private sendSubscribeMsg(epics: string[], session: SessionKeys): void {
+    this.ws?.send(
+      JSON.stringify({
+        destination: 'OHLCMarketData.subscribe',
+        cst: session.CST,
+        securityToken: session.X_SECURITY_TOKEN,
+        payload: {
+          epics,
+          resolution: CapComTimeIntervals.MINUTE,
+          type: CapComCandleType.classic,
+        },
+      })
+    );
   }
 
   private runSessionRenewalInterval(): void {
     setInterval(async () => {
-      this.logger.info({ message: 'session renewal' });
-
       try {
-        await this.checkAndRenewSession();
+        await this.capitalComSession.renewSession();
+        this.ping();
+        this.logger.info({ type: LogMessageType.WS_SESSION_RENEW });
       } catch (e) {
-        this.logger.error({ message: `Error session renewal: ${e} ` });
+        this.logger.error({ type: LogErrorType.WS_SESSION_ERROR, message: e });
       }
-
-      this.ws?.send(
-        JSON.stringify({
-          destination: 'ping',
-          cst: this.session$.getValue().CST,
-          securityToken: this.session$.getValue().X_SECURITY_TOKEN,
-        })
-      );
-    }, 5 * 60 * 1000);
+    }, 9 * 60 * 1000);
   }
 
   private setEpicTimeToLastPrice(
@@ -263,14 +262,6 @@ export class CapitalComWebsocket {
       oldCandle.low = oldCandle.low > candle.low ? candle.low : oldCandle.low;
       oldCandle.high = oldCandle.high < candle.high ? candle.high : oldCandle.high;
     }
-  }
-
-  private resetEpicTimeToLastPrice(
-    asset: string,
-    interval: CapComTimeIntervals,
-    candle: CandleChartData
-  ): void {
-    this.epicTimeToLastPrice[this.getKey(asset, interval)] = candle;
   }
 
   private getKey(asset: string, timeframe: CapComTimeIntervals): string {

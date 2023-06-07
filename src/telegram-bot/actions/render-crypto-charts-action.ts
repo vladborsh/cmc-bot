@@ -1,13 +1,13 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot from 'node-telegram-bot-api';
 import { Logger } from 'winston';
-import { DynamicConfig } from "../../dynamic-config";
-import { EnvConfig } from "../../env-config";
-import { DynamoDBClient } from "../../db/dynamo-db-client";
-import { BinanceClient } from "../../exchange/binance-client";
-import { ChartCanvasRenderer } from "../../exchange/chart-canvas-renderer";
-import { GeneralTimeIntervals } from "../../enums";
-import { TechIndicatorService } from "../../indicators/tech-indicator-service";
-import { BotLogger } from "../../utils/bot-logger";
+import { DynamicConfig } from '../../dynamic-config';
+import { EnvConfig } from '../../env-config';
+import { DynamoDBClient } from '../../db/dynamo-db-client';
+import { BinanceClient } from '../../exchange/binance-client';
+import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
+import { GeneralTimeIntervals, LogErrorType } from '../../enums';
+import { TechIndicatorService } from '../../indicators/tech-indicator-service';
+import { BotLogger } from '../../utils/bot-logger';
 
 export class RenderCryptoChartsAction {
   private logger: Logger | undefined;
@@ -16,7 +16,7 @@ export class RenderCryptoChartsAction {
     private envConfig: EnvConfig,
     private dynamicConfig: DynamicConfig,
     private bot: TelegramBot,
-    private dynamoDbClient: DynamoDBClient,
+    private dynamoDbClient: DynamoDBClient
   ) {
     this.logger = BotLogger.getInstance(envConfig);
   }
@@ -41,7 +41,7 @@ export class RenderCryptoChartsAction {
           continue;
         }
       } catch (e) {
-        this.logger?.error({ chatId, message: `Symbol is not exist: ${e}`});
+        this.logger?.error({ chatId, type: LogErrorType.UNKNOWN_SYMBOL_ERROR, message: e });
         break;
       }
 
@@ -58,7 +58,7 @@ export class RenderCryptoChartsAction {
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
-        this.logger?.error({ chatId, message: `error during chart image generation: ${symbol}` });
+        this.logger?.error({ chatId, type: LogErrorType.CHART_IMAGE_ERROR, message: `${symbol}, ${e}` });
       }
     }
 

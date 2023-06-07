@@ -31,6 +31,7 @@ export interface CapComMarketData {
 export interface WSCapComMarketData {
   status: string,
   destination: string,
+  correlationId: string,
   payload: {
     resolution: CapComTimeIntervals,
     epic: string,

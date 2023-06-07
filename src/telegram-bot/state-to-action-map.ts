@@ -39,8 +39,7 @@ function getDependencies() {
   const capitalComSession = CapitalComSession.getInstance(envConfig);
   const capitalComWebsocket = CapitalComWebsocket.getInstance(
     envConfig,
-    capitalComSession.session$,
-    () => capitalComSession.checkAndRenewSession(),
+    capitalComSession,
     watcherLogger
   );
   const capitalComClient = CapitalComClient.getInstance(

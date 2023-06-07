@@ -22,6 +22,7 @@ import { IExchangeClient } from '../interfaces/exchange-client.interface';
 import { Logger } from 'winston';
 import { WatchListLogger } from '../utils/watchlist-logger';
 import { EnvConfig } from '../env-config';
+import { LogMessageType } from '../enums';
 
 export class AssetWatchListProcessor {
   private static instance: AssetWatchListProcessor;
@@ -171,7 +172,11 @@ export class AssetWatchListProcessor {
     chatId: string,
     watchListItem: WatchListItem
   ): Promise<void> {
-    this.logger?.info({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame}`});
+    this.logger?.info({
+      chatId,
+      type: LogMessageType.LAST_CHART_DATA,
+      message: `${watchListItem.name} ${watchListItem.timeFrame}`,
+    });
     const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
     historyCandles.push(lastChartData);
     historyCandles.shift();
@@ -191,7 +196,10 @@ export class AssetWatchListProcessor {
       });
       data = response.data;
     } catch (e) {
-      this.logger?.error({ chatId, message: `${watchListItem.name} ${watchListItem.timeFrame} ${e}` });
+      this.logger?.error({
+        chatId,
+        message: `${watchListItem.name} ${watchListItem.timeFrame} ${e}`,
+      });
       return;
     }
     const dynamicConfigValues = await this.dynamicConfig.getConfig();
@@ -200,12 +208,18 @@ export class AssetWatchListProcessor {
     if (data?.alerts?.length) {
       const img = chartCanvasRenderer.generateImage(historyCandles, data);
 
-      this.logger?.info({ chatId, message: `[alert]: ${watchListItem.name} ${watchListItem.timeFrame} ${data?.alerts.join('')}`});
+      this.logger?.info({
+        chatId,
+        type: LogMessageType.ALERT,
+        message: `${watchListItem.name} ${watchListItem.timeFrame} ${data?.alerts.join('')}`,
+      });
 
       await this.bot.sendPhoto(chatId, img, {
-        caption: `${getLinkText(watchListItem.name, watchListItem.timeFrame, watchListItem.exchange)} ${data?.alerts.join(
-          ' '
-        )}`,
+        caption: `${getLinkText(
+          watchListItem.name,
+          watchListItem.timeFrame,
+          watchListItem.exchange
+        )} ${data?.alerts.join(' ')}`,
         parse_mode: 'MarkdownV2',
       });
     }

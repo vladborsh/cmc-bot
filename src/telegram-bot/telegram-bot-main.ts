@@ -3,7 +3,7 @@ import { StateMachine } from '@xstate/fsm';
 import { EnvConfig } from '../env-config';
 import { DynamicConfig } from '../dynamic-config';
 import { createBotState } from './state-machine';
-import { BotStates, BotTransitions } from '../enums';
+import { BotStates, BotTransitions, LogMessageType } from '../enums';
 import { stateActions } from './state-to-action-map';
 import { botMessageTextToState } from './bot-message-text-to-state.config';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
@@ -47,8 +47,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
   const capitalComSession = CapitalComSession.getInstance(envConfig);
   const capitalComWebsocket = CapitalComWebsocket.getInstance(
     envConfig,
-    capitalComSession.session$,
-    () => capitalComSession.checkAndRenewSession(),
+    capitalComSession,
     watcherLogger
   );
   const capitalComClient = CapitalComClient.getInstance(
@@ -72,11 +71,11 @@ export async function runTelegramBot(envConfig: EnvConfig) {
   try {
     await techIndicatorServiceHealthCheck(envConfig);
   } catch (e) {
-    logger.error({ message: 'tech indicator hea;th check fails' });
+    logger.error({ message: 'tech indicator health check fails' });
   }
 
   bot.on('message', async (message: TelegramBot.Message) => {
-    logger.info({ chatId: message.chat.id, message: `[command] ${message.text}` });
+    logger.info({ chatId: message.chat.id, type: LogMessageType.COMMAND, message: message.text });
 
     if (!message.text) {
       return;
