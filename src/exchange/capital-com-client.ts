@@ -115,7 +115,7 @@ export class CapitalComClient implements IExchangeClient {
 
       const emitCandleData = async () => {
         try {
-          const candles = await this.getCandles(symbol, timeInterval, 1);
+          const candles = await this.getCandles(symbol, timeInterval, 2);
           observer.next(candles[0]);
         } catch (e) {
           let err = e as AxiosError;

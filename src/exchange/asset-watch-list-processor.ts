@@ -270,9 +270,7 @@ export class AssetWatchListProcessor {
       );
       /* last candles is unfinished */
       historyCandles.pop();
-      if (watchListItem.exchange === Exchange.binance) {
-        historyCandles.pop();
-      }
+      historyCandles.pop();
       this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;
     }
 
