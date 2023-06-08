@@ -1,5 +1,5 @@
 import { EnvConfig } from '../env-config';
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import { CapComMarketData } from '../interfaces/capital-com.interfaces';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { GeneralTimeIntervals } from '../enums';
@@ -23,6 +23,8 @@ export class CapitalComClient implements IExchangeClient {
       this.instance = new CapitalComClient(envConfig, capitalComSession);
     }
 
+    setInterval(async () => await capitalComSession.checkAndRenewSession(), 1111);
+
     return this.instance;
   }
 
@@ -35,8 +37,6 @@ export class CapitalComClient implements IExchangeClient {
     interval: GeneralTimeIntervals,
     limit: number
   ): Promise<CandleChartData[]> {
-    await this.capitalComSession.checkAndRenewSession();
-
     const [from, to] = getFromToDate(mapGeneralTimeIntervalToCapCom[interval], limit);
 
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
@@ -113,7 +113,8 @@ export class CapitalComClient implements IExchangeClient {
           const candles = await this.getCandles(symbol, timeInterval, 1);
           observer.next(candles[0]);
         } catch (e) {
-          observer.error(e);
+          let err = e as AxiosError;
+          observer.error(err.message ? err.message : err);
         }
       };
 

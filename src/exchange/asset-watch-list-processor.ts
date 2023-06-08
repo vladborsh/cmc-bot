@@ -7,7 +7,7 @@ import {
   combineLatest,
   switchMap,
   takeUntil,
-  tap,
+  retryWhen, delay, tap,
 } from 'rxjs';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { UserState, WatchListItem, Exchange } from '../interfaces/user-state.interface';
@@ -162,10 +162,11 @@ export class AssetWatchListProcessor {
 
         return client.getCandlesStream(watchListItem.name, watchListItem.timeFrame).pipe(
           tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem)),
-          catchError((err) => {
-            this.logger?.error({ type: LogMessageType.LAST_CHART_DATA_ERROR, message: err });
-            return EMPTY;
-          })
+          retryWhen(errors => errors.pipe(
+            tap(err => this.logger?.error({ type: LogMessageType.LAST_CHART_DATA_ERROR, message: err })),
+            delay(100),
+          )),
+          catchError(() => EMPTY),
         );
       })
     );
