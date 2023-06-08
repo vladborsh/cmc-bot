@@ -12,6 +12,7 @@ import { CapitalComSession } from './capital-com-session';
 
 export class CapitalComClient implements IExchangeClient {
   static instance: CapitalComClient;
+  private streams: Record<string, Observable<CandleChartData>> = {};
 
   private constructor(private envConfig: EnvConfig, private capitalComSession: CapitalComSession) {}
 
@@ -102,7 +103,11 @@ export class CapitalComClient implements IExchangeClient {
   }
 
   public start(symbol: string, timeInterval: GeneralTimeIntervals): Observable<CandleChartData> {
-    return new Observable<CandleChartData>((observer) => {
+    if (this.streams[this.getKey(symbol, timeInterval)]) {
+      return this.streams[this.getKey(symbol, timeInterval)];
+    }
+
+    const newStream = new Observable<CandleChartData>((observer) => {
       const intervalMilliseconds = this.calculateInterval(timeInterval);
       let isSubscribed = true;
       let initialTimeoutId: NodeJS.Timeout;
@@ -138,6 +143,10 @@ export class CapitalComClient implements IExchangeClient {
         clearTimeout(initialTimeoutId);
       };
     });
+
+    this.streams[this.getKey(symbol, timeInterval)] = newStream;
+
+    return newStream;
   }
 
   private calculateInterval(timeInterval: GeneralTimeIntervals): number {
@@ -161,5 +170,9 @@ export class CapitalComClient implements IExchangeClient {
     const timeToNextInterval = intervalMilliseconds - msFromIntervalStart;
 
     return timeToNextInterval;
+  }
+
+  private getKey(symbol: string, interval: string): string {
+    return `${symbol}:${interval}`;
   }
 }
