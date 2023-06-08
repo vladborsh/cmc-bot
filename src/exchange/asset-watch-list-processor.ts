@@ -7,7 +7,9 @@ import {
   combineLatest,
   switchMap,
   takeUntil,
-  retryWhen, delay, tap,
+  retryWhen,
+  delay,
+  tap,
 } from 'rxjs';
 import { DynamoDBClient } from '../db/dynamo-db-client';
 import { UserState, WatchListItem, Exchange } from '../interfaces/user-state.interface';
@@ -162,11 +164,15 @@ export class AssetWatchListProcessor {
 
         return client.getCandlesStream(watchListItem.name, watchListItem.timeFrame).pipe(
           tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem)),
-          retryWhen(errors => errors.pipe(
-            tap(err => this.logger?.error({ type: LogMessageType.LAST_CHART_DATA_ERROR, message: err })),
-            delay(100),
-          )),
-          catchError(() => EMPTY),
+          retryWhen((errors) =>
+            errors.pipe(
+              tap((err) =>
+                this.logger?.error({ type: LogMessageType.LAST_CHART_DATA_ERROR, message: err })
+              ),
+              delay(100)
+            )
+          ),
+          catchError(() => EMPTY)
         );
       })
     );
@@ -181,6 +187,7 @@ export class AssetWatchListProcessor {
 
     const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
     const updatedHistoryCandles = [...historyCandles.slice(1), lastChartData];
+    this.setCachedHistoryCandles(chatId, watchListItem, updatedHistoryCandles);
 
     const data = await this.fetchIndicatorData(updatedHistoryCandles, chatId, watchListItem);
     if (!data) return;
@@ -232,6 +239,18 @@ export class AssetWatchListProcessor {
       this.logger?.error({ chatId, type, message: logMessage });
     } else {
       this.logger?.info({ chatId, type, message: logMessage });
+    }
+  }
+
+  private setCachedHistoryCandles(
+    chatId: string,
+    watchListItem: WatchListItem,
+    historyCandles: CandleChartData[]
+  ) {
+    if (this.chatIdToHistoryCandles[chatId]) {
+      if (this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
+        this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;
+      }
     }
   }
 
