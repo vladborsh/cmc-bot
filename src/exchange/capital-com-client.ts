@@ -1,37 +1,26 @@
 import { EnvConfig } from '../env-config';
 import axios, { AxiosResponse } from 'axios';
-import { differenceInMinutes } from 'date-fns';
-import {
-  CapComEncryptionKey,
-  CapComMarketData,
-  SessionKeys,
-} from '../interfaces/capital-com.interfaces';
+import { CapComMarketData } from '../interfaces/capital-com.interfaces';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
 import { GeneralTimeIntervals } from '../enums';
 import { IExchangeClient } from '../interfaces/exchange-client.interface';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { mapGeneralTimeIntervalToCapCom } from './configs/capital-com-client.config';
 import { CapitalComMarketMarketData } from './configs/capital-com-market-data.interface';
 import { getFromToDate, mapMarketDataToChartData } from './configs/capital-com.helpers';
-import { CapitalComWebsocket } from './capital-com-websocket';
-import { Logger } from 'winston';
 import { CapitalComSession } from './capital-com-session';
+
 export class CapitalComClient implements IExchangeClient {
   static instance: CapitalComClient;
 
-  private constructor(
-    private envConfig: EnvConfig,
-    private capitalComSession: CapitalComSession,
-    private capitalComWebsocket: CapitalComWebsocket
-  ) {}
+  private constructor(private envConfig: EnvConfig, private capitalComSession: CapitalComSession) {}
 
   public static getInstance(
     envConfig: EnvConfig,
-    capitalComSession: CapitalComSession,
-    capitalComWebsocket: CapitalComWebsocket
+    capitalComSession: CapitalComSession
   ): CapitalComClient {
     if (!this.instance) {
-      this.instance = new CapitalComClient(envConfig, capitalComSession, capitalComWebsocket);
+      this.instance = new CapitalComClient(envConfig, capitalComSession);
     }
 
     return this.instance;
@@ -39,7 +28,6 @@ export class CapitalComClient implements IExchangeClient {
 
   public async init(): Promise<void> {
     await this.capitalComSession.renewSession();
-    this.capitalComWebsocket.init();
   }
 
   public async getCandles(
@@ -74,7 +62,7 @@ export class CapitalComClient implements IExchangeClient {
     asset: string,
     interval: GeneralTimeIntervals
   ): Observable<CandleChartData> {
-    return this.capitalComWebsocket.getCandlesStream(asset, interval);
+    return this.start(asset, interval);
   }
 
   public async getMarketData(): Promise<CapitalComMarketMarketData> {
@@ -111,5 +99,66 @@ export class CapitalComClient implements IExchangeClient {
     );
 
     return response.data;
+  }
+
+  public start(symbol: string, timeInterval: GeneralTimeIntervals): Observable<CandleChartData> {
+    return new Observable<CandleChartData>((observer) => {
+      const intervalMilliseconds = this.calculateInterval(timeInterval);
+      let isSubscribed = true;
+      let initialTimeoutId: NodeJS.Timeout;
+      let nextEmissionTimeoutId: NodeJS.Timeout;
+
+      const emitCandleData = async () => {
+        try {
+          const candles = await this.getCandles(symbol, timeInterval, 1);
+          observer.next(candles[0]);
+        } catch (e) {
+          observer.error(e);
+        }
+      };
+
+      const scheduleNextEmission = async () => {
+        if (!isSubscribed) return;
+        const timeToNextInterval = this.calculateTimeToNextInterval(intervalMilliseconds);
+        await new Promise((resolve) => (nextEmissionTimeoutId = setTimeout(resolve, timeToNextInterval)));
+        await emitCandleData();
+      };
+
+      initialTimeoutId = setTimeout(async () => {
+        await emitCandleData();
+        while (isSubscribed) {
+          await scheduleNextEmission();
+        }
+      }, this.calculateTimeToNextInterval(intervalMilliseconds));
+
+      return () => {
+        isSubscribed = false;
+        clearTimeout(nextEmissionTimeoutId);
+        clearTimeout(initialTimeoutId);
+      };
+    });
+  }
+
+  private calculateInterval(timeInterval: GeneralTimeIntervals): number {
+    const unit = timeInterval[0];
+    const value = parseInt(timeInterval.slice(1));
+
+    switch (unit) {
+      case 'm':
+        return value * 60 * 1000;
+      case 'h':
+        return value * 60 * 60 * 1000;
+      default:
+        throw value * 60 * 1000;
+    }
+  }
+
+  private calculateTimeToNextInterval(intervalMilliseconds: number): number {
+    const dateNow = Date.now();
+    const msFromHourStart = dateNow % (60 * 60 * 1000);
+    const msFromIntervalStart = msFromHourStart % intervalMilliseconds;
+    const timeToNextInterval = intervalMilliseconds - msFromIntervalStart;
+
+    return timeToNextInterval;
   }
 }

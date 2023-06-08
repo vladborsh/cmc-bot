@@ -1,7 +1,9 @@
 import {
   BehaviorSubject,
+  EMPTY,
   Observable,
   Subject,
+  catchError,
   combineLatest,
   switchMap,
   takeUntil,
@@ -158,11 +160,13 @@ export class AssetWatchListProcessor {
           ? this.watchListItemToExchange[watchListItem.exchange]
           : this.binanceClient;
 
-        return client
-          .getCandlesStream(watchListItem.name, watchListItem.timeFrame)
-          .pipe(
-            tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem))
-          );
+        return client.getCandlesStream(watchListItem.name, watchListItem.timeFrame).pipe(
+          tap((lastChartData) => this.processLastChartData(lastChartData, chatId, watchListItem)),
+          catchError((err) => {
+            this.logger?.error({ type: LogMessageType.LAST_CHART_DATA_ERROR, message: err });
+            return EMPTY;
+          })
+        );
       })
     );
   }
@@ -172,15 +176,34 @@ export class AssetWatchListProcessor {
     chatId: string,
     watchListItem: WatchListItem
   ): Promise<void> {
-    this.logger?.info({
-      chatId,
-      type: LogMessageType.LAST_CHART_DATA,
-      message: `${watchListItem.name} ${watchListItem.timeFrame}`,
-    });
+    this.log(LogMessageType.LAST_CHART_DATA, chatId, watchListItem);
+
     const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
-    historyCandles.push(lastChartData);
-    historyCandles.shift();
-    let data: ChartDrawingsData | undefined;
+    const updatedHistoryCandles = [...historyCandles.slice(1), lastChartData];
+
+    const data = await this.fetchIndicatorData(updatedHistoryCandles, chatId, watchListItem);
+    if (!data) return;
+
+    if (data.alerts && data.alerts.length) {
+      const dynamicConfigValues = await this.dynamicConfig.getConfig();
+      const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
+      const img = chartCanvasRenderer.generateImage(updatedHistoryCandles, data);
+
+      this.log(LogMessageType.ALERT, chatId, watchListItem, data.alerts.join(''));
+
+      const { name, timeFrame, exchange } = watchListItem;
+      await this.bot.sendPhoto(chatId, img, {
+        caption: `${getLinkText(name, timeFrame, exchange)} ${data.alerts.join(' ')}`,
+        parse_mode: 'MarkdownV2',
+      });
+    }
+  }
+
+  private async fetchIndicatorData(
+    historyCandles: CandleChartData[],
+    chatId: string,
+    watchListItem: WatchListItem
+  ): Promise<ChartDrawingsData | undefined> {
     try {
       const response = await this.techIndicatorService.getSMIndicator({
         chartData: historyCandles,
@@ -194,34 +217,20 @@ export class AssetWatchListProcessor {
           ],
         },
       });
-      data = response.data;
+      return response.data;
     } catch (e) {
-      this.logger?.error({
-        chatId,
-        message: `${watchListItem.name} ${watchListItem.timeFrame} ${e}`,
-      });
-      return;
+      this.log(LogMessageType.TECH_INDICATOR_ERROR, chatId, watchListItem, e as string);
     }
-    const dynamicConfigValues = await this.dynamicConfig.getConfig();
-    const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
+  }
 
-    if (data?.alerts?.length) {
-      const img = chartCanvasRenderer.generateImage(historyCandles, data);
+  private log(type: LogMessageType, chatId: string, watchListItem: WatchListItem, message = '') {
+    const { name, timeFrame } = watchListItem;
+    const logMessage = `${name} ${timeFrame} ${message}`;
 
-      this.logger?.info({
-        chatId,
-        type: LogMessageType.ALERT,
-        message: `${watchListItem.name} ${watchListItem.timeFrame} ${data?.alerts.join('')}`,
-      });
-
-      await this.bot.sendPhoto(chatId, img, {
-        caption: `${getLinkText(
-          watchListItem.name,
-          watchListItem.timeFrame,
-          watchListItem.exchange
-        )} ${data?.alerts.join(' ')}`,
-        parse_mode: 'MarkdownV2',
-      });
+    if (type.includes('ERROR')) {
+      this.logger?.error({ chatId, type, message: logMessage });
+    } else {
+      this.logger?.info({ chatId, type, message: logMessage });
     }
   }
 

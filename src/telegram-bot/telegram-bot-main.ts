@@ -14,7 +14,6 @@ import { botPromptStates } from './bot-prompt-states.config';
 import { CapitalComClient } from '../exchange/capital-com-client';
 import { BotLogger } from '../utils/bot-logger';
 import { WatchListLogger } from '../utils/watchlist-logger';
-import { CapitalComWebsocket } from '../exchange/capital-com-websocket';
 import { CapitalComSession } from '../exchange/capital-com-session';
 
 const botStates: Record<string, StateMachine.Service<any, any>> = {};
@@ -45,16 +44,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
   const bot = new TelegramBot(envConfig.TG_TOKEN || '', { polling: true });
   const binanceClient = BinanceClient.getInstance(envConfig);
   const capitalComSession = CapitalComSession.getInstance(envConfig);
-  const capitalComWebsocket = CapitalComWebsocket.getInstance(
-    envConfig,
-    capitalComSession,
-    watcherLogger
-  );
-  const capitalComClient = CapitalComClient.getInstance(
-    envConfig,
-    capitalComSession,
-    capitalComWebsocket
-  );
+  const capitalComClient = CapitalComClient.getInstance(envConfig, capitalComSession);
   const assetWatchList = AssetWatchListProcessor.getInstance(
     envConfig,
     dynamoDbClient,
@@ -117,7 +107,7 @@ export async function runTelegramBot(envConfig: EnvConfig) {
         await stateActions[newState](bot, message, botStates[message.chat.id]);
       } while (newState !== botStates[message.chat.id].state.value);
     } catch (error) {
-      logger.error({ chatId: message.chat.id, message: `Error while handling command: ${error}`});
+      logger.error({ chatId: message.chat.id, message: `Error while handling command: ${error}` });
 
       await bot.sendMessage(message.chat.id, `I'm sorry, something happens during processing...`);
 

@@ -27,7 +27,6 @@ import { AskAboutNewsMessageAction } from './actions/ask-about-news-message-acti
 import { IndicesChartAction } from './actions/indices-chart-actions';
 import { BtcChartAction } from './actions/btc-chart-action';
 import { CapitalComSession } from '../exchange/capital-com-session';
-import { CapitalComWebsocket } from '../exchange/capital-com-websocket';
 import { WatchListLogger } from '../utils/watchlist-logger';
 
 function getDependencies() {
@@ -37,15 +36,9 @@ function getDependencies() {
   const dynamoDBClient = DynamoDBClient.getInstance(envConfig);
   const binanceClient = BinanceClient.getInstance(envConfig);
   const capitalComSession = CapitalComSession.getInstance(envConfig);
-  const capitalComWebsocket = CapitalComWebsocket.getInstance(
-    envConfig,
-    capitalComSession,
-    watcherLogger
-  );
   const capitalComClient = CapitalComClient.getInstance(
     envConfig,
-    capitalComSession,
-    capitalComWebsocket
+    capitalComSession
   );
 
   return {
@@ -55,7 +48,6 @@ function getDependencies() {
     dynamoDBClient,
     binanceClient,
     capitalComSession,
-    capitalComWebsocket,
     capitalComClient,
   };
 }

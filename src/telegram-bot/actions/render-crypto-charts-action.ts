@@ -5,7 +5,7 @@ import { EnvConfig } from '../../env-config';
 import { DynamoDBClient } from '../../db/dynamo-db-client';
 import { BinanceClient } from '../../exchange/binance-client';
 import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
-import { GeneralTimeIntervals, LogErrorType } from '../../enums';
+import { GeneralTimeIntervals, LogMessageType } from '../../enums';
 import { TechIndicatorService } from '../../indicators/tech-indicator-service';
 import { BotLogger } from '../../utils/bot-logger';
 
@@ -41,7 +41,7 @@ export class RenderCryptoChartsAction {
           continue;
         }
       } catch (e) {
-        this.logger?.error({ chatId, type: LogErrorType.UNKNOWN_SYMBOL_ERROR, message: e });
+        this.logger?.error({ chatId, type: LogMessageType.UNKNOWN_SYMBOL_ERROR, message: e });
         break;
       }
 
@@ -58,7 +58,7 @@ export class RenderCryptoChartsAction {
         await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
         count++;
       } catch (e) {
-        this.logger?.error({ chatId, type: LogErrorType.CHART_IMAGE_ERROR, message: `${symbol}, ${e}` });
+        this.logger?.error({ chatId, type: LogMessageType.CHART_IMAGE_ERROR, message: `${symbol}, ${e}` });
       }
     }
 
