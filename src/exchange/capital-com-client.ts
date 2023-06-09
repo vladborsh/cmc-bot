@@ -38,8 +38,6 @@ export class CapitalComClient implements IExchangeClient {
     interval: GeneralTimeIntervals,
     limit: number
   ): Promise<CandleChartData[]> {
-    const [from, to] = getFromToDate(mapGeneralTimeIntervalToCapCom[interval], limit);
-
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}api/v1/prices/${symbol}`,
       {
@@ -49,8 +47,6 @@ export class CapitalComClient implements IExchangeClient {
         },
         params: {
           resolution: mapGeneralTimeIntervalToCapCom[interval],
-          from,
-          to,
           max: limit,
         },
       }
