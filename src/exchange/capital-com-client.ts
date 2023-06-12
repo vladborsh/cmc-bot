@@ -12,7 +12,7 @@ import { CapitalComSession } from './capital-com-session';
 
 export class CapitalComClient implements IExchangeClient {
   static instance: CapitalComClient;
-  private streams: Record<string, Observable<CandleChartData>> = {};
+  private streams: Record<string, Observable<CandleChartData[]>> = {};
 
   private constructor(private envConfig: EnvConfig, private capitalComSession: CapitalComSession) {}
 
@@ -58,7 +58,7 @@ export class CapitalComClient implements IExchangeClient {
   public getCandlesStream(
     asset: string,
     interval: GeneralTimeIntervals
-  ): Observable<CandleChartData> {
+  ): Observable<CandleChartData[]> {
     return this.start(asset, interval);
   }
 
@@ -98,12 +98,12 @@ export class CapitalComClient implements IExchangeClient {
     return response.data;
   }
 
-  public start(symbol: string, timeInterval: GeneralTimeIntervals): Observable<CandleChartData> {
+  public start(symbol: string, timeInterval: GeneralTimeIntervals): Observable<CandleChartData[]> {
     if (this.streams[this.getKey(symbol, timeInterval)]) {
       return this.streams[this.getKey(symbol, timeInterval)];
     }
 
-    const newStream = new Observable<CandleChartData>((observer) => {
+    const newStream = new Observable<CandleChartData[]>((observer) => {
       const intervalMilliseconds = this.calculateInterval(timeInterval);
       let isSubscribed = true;
       let initialTimeoutId: NodeJS.Timeout;
@@ -111,8 +111,9 @@ export class CapitalComClient implements IExchangeClient {
 
       const emitCandleData = async () => {
         try {
-          const candles = await this.getCandles(symbol, timeInterval, 2);
-          observer.next(candles[0]);
+          const candles = await this.getCandles(symbol, timeInterval, 800);
+
+          observer.next(candles);
         } catch (e) {
           let err = e as AxiosError;
           observer.error(err.message ? err.message : err);

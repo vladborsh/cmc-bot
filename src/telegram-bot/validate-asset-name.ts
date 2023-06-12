@@ -7,7 +7,7 @@ import { Exchange } from '../interfaces/user-state.interface';
 
 export async function validateAssetName(
   text: string | undefined,
-  envConfig: EnvConfig
+  envConfig: EnvConfig,
 ): Promise<ParsedAssetInfo> {
   if (!text) {
     throw new Error(`invalid command: there is no text`);
@@ -41,7 +41,7 @@ export async function validateAssetName(
     if (!asset.includes('USDT')) {
       asset = `${asset}USDT`;
     }
-    const binanceClient = BinanceClient.getInstance(envConfig);
+    const binanceClient = BinanceClient.getInstance(envConfig, dynamicConfig);
     if (!(await binanceClient.isSymbolExists(asset))) {
       throw new Error(`Binance does not support: "${asset}"`);
     }

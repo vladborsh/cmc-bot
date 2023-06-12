@@ -34,7 +34,7 @@ function getDependencies() {
   const watcherLogger = WatchListLogger.getInstance(envConfig);
   const dynamicConfig = DynamicConfig.getInstance(envConfig);
   const dynamoDBClient = DynamoDBClient.getInstance(envConfig);
-  const binanceClient = BinanceClient.getInstance(envConfig);
+  const binanceClient = BinanceClient.getInstance(envConfig, dynamicConfig);
   const capitalComSession = CapitalComSession.getInstance(envConfig);
   const capitalComClient = CapitalComClient.getInstance(
     envConfig,
@@ -274,7 +274,7 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
   ) => {
     const envConfig = EnvConfig.getInstance();
     const dynamicConfig = DynamicConfig.getInstance(envConfig);
-    const binanceClient = BinanceClient.getInstance(envConfig);
+    const binanceClient = BinanceClient.getInstance(envConfig, dynamicConfig);
     const action = new BtcChartAction(envConfig, dynamicConfig, binanceClient, bot);
     await action.execute(message.chat.id);
     state.send(BotTransitions.BACK_TO_START);

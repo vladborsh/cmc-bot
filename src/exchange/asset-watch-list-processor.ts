@@ -155,7 +155,7 @@ export class AssetWatchListProcessor {
   private getSubscriptionForWatchList(
     chatId: string,
     watchList: WatchListItem[]
-  ): Observable<CandleChartData[]> {
+  ): Observable<CandleChartData[][]> {
     return combineLatest(
       watchList.map((watchListItem) => {
         const client = watchListItem.exchange
@@ -179,23 +179,20 @@ export class AssetWatchListProcessor {
   }
 
   private async processLastChartData(
-    lastChartData: CandleChartData,
+    lastChartData: CandleChartData[],
     chatId: string,
     watchListItem: WatchListItem
   ): Promise<void> {
     this.log(LogMessageType.LAST_CHART_DATA, chatId, watchListItem);
 
-    const historyCandles = await this.getCachedHistoryCandles(chatId, watchListItem);
-    const updatedHistoryCandles = [...historyCandles.slice(1), lastChartData];
-    this.setCachedHistoryCandles(chatId, watchListItem, updatedHistoryCandles);
+    const data = await this.fetchIndicatorData(lastChartData, chatId, watchListItem);
 
-    const data = await this.fetchIndicatorData(updatedHistoryCandles, chatId, watchListItem);
     if (!data) return;
 
     if (data.alerts && data.alerts.length) {
       const dynamicConfigValues = await this.dynamicConfig.getConfig();
       const chartCanvasRenderer = new ChartCanvasRenderer(dynamicConfigValues);
-      const img = chartCanvasRenderer.generateImage(updatedHistoryCandles, data);
+      const img = chartCanvasRenderer.generateImage(lastChartData, data);
 
       this.log(LogMessageType.ALERT, chatId, watchListItem, data.alerts.join(''));
 
@@ -241,43 +238,5 @@ export class AssetWatchListProcessor {
       this.logger?.info({ chatId, type, message: logMessage });
     }
   }
-
-  private setCachedHistoryCandles(
-    chatId: string,
-    watchListItem: WatchListItem,
-    historyCandles: CandleChartData[]
-  ) {
-    if (this.chatIdToHistoryCandles[chatId]) {
-      if (this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
-        this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;
-      }
-    }
-  }
-
-  private async getCachedHistoryCandles(chatId: string, watchListItem: WatchListItem) {
-    if (!this.chatIdToHistoryCandles[chatId]) {
-      this.chatIdToHistoryCandles[chatId] = {};
-    }
-    if (!this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)]) {
-      const dynamicConfigValues = await this.dynamicConfig.getConfig();
-      const exchangeClient = watchListItem.exchange
-        ? this.watchListItemToExchange[watchListItem.exchange]
-        : this.binanceClient;
-      const historyCandles = await exchangeClient.getCandles(
-        watchListItem.name,
-        watchListItem.timeFrame,
-        dynamicConfigValues.CHART_HISTORY_SIZE
-      );
-      /* last candles is unfinished */
-      historyCandles.pop();
-      historyCandles.pop();
-      this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)] = historyCandles;
-    }
-
-    return this.chatIdToHistoryCandles[chatId][getWatchListKey(watchListItem)];
-  }
 }
 
-function getWatchListKey(watchListItem: WatchListItem): string {
-  return `${watchListItem.name}:${watchListItem.timeFrame}`;
-}

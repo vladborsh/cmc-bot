@@ -29,7 +29,7 @@ export class RenderCryptoChartsAction {
       return;
     }
 
-    const binanceClient = await BinanceClient.getInstance(this.envConfig);
+    const binanceClient = BinanceClient.getInstance(this.envConfig, this.dynamicConfig);
 
     let count = 0;
     const dynamicConfigValues = await this.dynamicConfig.getConfig();

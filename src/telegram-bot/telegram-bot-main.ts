@@ -42,14 +42,14 @@ export async function runTelegramBot(envConfig: EnvConfig) {
   const dynamicConfig = DynamicConfig.getInstance(envConfig);
 
   const bot = new TelegramBot(envConfig.TG_TOKEN || '', { polling: true });
-  const binanceClient = BinanceClient.getInstance(envConfig);
+  const binanceClient = BinanceClient.getInstance(envConfig, dynamicConfig);
   const capitalComSession = CapitalComSession.getInstance(envConfig);
   const capitalComClient = CapitalComClient.getInstance(envConfig, capitalComSession);
   const assetWatchList = AssetWatchListProcessor.getInstance(
     envConfig,
     dynamoDbClient,
     TechIndicatorService.getInstance(envConfig),
-    BinanceClient.getInstance(envConfig),
+    binanceClient,
     capitalComClient,
     dynamicConfig,
     bot

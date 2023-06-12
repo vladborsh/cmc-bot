@@ -8,28 +8,30 @@ import Binance, {
 } from 'binance-api-node';
 import { EnvConfig } from '../env-config';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { Observable, Observer } from 'rxjs';
+import { Observable, Observer, from } from 'rxjs';
 import { timeIntervalBinanceToMillis } from './exchange-helpers';
 import { IExchangeClient } from '../interfaces/exchange-client.interface';
 import { GeneralTimeIntervals } from '../enums';
 import { mapGeneralTimeIntervalToBinance } from './configs/binance-client.config';
+import { DynamicConfig } from '../dynamic-config';
 
 export class BinanceClient implements IExchangeClient {
   client: BinanceConnect;
   exchangeInfo: ExchangeInfo | undefined;
+  historyCandles: Record<string, CandleChartData[]> = {};
 
   static instance: BinanceClient;
 
-  private constructor(envConfig: EnvConfig) {
+  private constructor(envConfig: EnvConfig, private dynamicConfig: DynamicConfig) {
     this.client = Binance({
       apiKey: envConfig.BINANCE_API_KEY,
       apiSecret: envConfig.BINANCE_API_KEY,
     });
   }
 
-  public static getInstance(envConfig: EnvConfig): BinanceClient {
+  public static getInstance(envConfig: EnvConfig, dynamicConfig: DynamicConfig): BinanceClient {
     if (!this.instance) {
-      this.instance = new BinanceClient(envConfig);
+      this.instance = new BinanceClient(envConfig, dynamicConfig);
     }
 
     return this.instance;
@@ -56,11 +58,18 @@ export class BinanceClient implements IExchangeClient {
   public getCandlesStream(
     asset: string,
     interval: GeneralTimeIntervals
-  ): Observable<CandleChartData> {
-    return new Observable((observer: Observer<CandleChartData>) => {
+  ): Observable<CandleChartData[]> {
+    return new Observable((observer: Observer<CandleChartData[]>) => {
       const clean = this.client.ws.candles(asset, mapGeneralTimeIntervalToBinance[interval], (candle) => {
         if (candle.isFinal) {
-          observer.next(BinanceClient.mapCandle(candle, mapGeneralTimeIntervalToBinance[interval]));
+          const lastCandle = BinanceClient.mapCandle(candle, mapGeneralTimeIntervalToBinance[interval]);
+
+          from(this.getCachedHistoryCandles(asset,interval))
+            .subscribe(historyCandles => {
+              observer.next([...historyCandles, lastCandle]);
+              historyCandles.push(lastCandle);
+              historyCandles.shift();
+            });
         }
       });
 
@@ -76,6 +85,24 @@ export class BinanceClient implements IExchangeClient {
     return this.exchangeInfo.symbols.some(
       (symbolInfo: Symbol) => symbolInfo.symbol === symbolToCheck
     );
+  }
+
+  private async getCachedHistoryCandles(symbol: string, interval: GeneralTimeIntervals) {
+    if (!this.historyCandles[this.getKey(symbol, interval)]) {
+      const dynamicConfigValues = await this.dynamicConfig.getConfig();
+
+      const historyCandles = await this.getCandles(
+        symbol,
+        interval,
+        dynamicConfigValues.CHART_HISTORY_SIZE
+      );
+      /* last candles is unfinished */
+      historyCandles.pop();
+      historyCandles.pop();
+      this.historyCandles[this.getKey(symbol, interval)] = historyCandles;
+    }
+
+    return this.historyCandles[this.getKey(symbol, interval)];
   }
 
   private static mapCandleChartResult(chartResult: CandleChartResult[]): CandleChartData[] {
@@ -99,5 +126,9 @@ export class BinanceClient implements IExchangeClient {
       openTime: Date.now() - timeIntervalBinanceToMillis(interval),
       volume: parseFloat(candle.volume),
     };
+  }
+
+  private getKey(symbol: string, interval: GeneralTimeIntervals): string {
+    return `${symbol}:${interval}`;
   }
 }
