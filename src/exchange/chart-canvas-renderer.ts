@@ -329,6 +329,16 @@ export class ChartCanvasRenderer {
 
     const color = close >= open ? this.UP_CANDLE_COLOR : this.DOWN_CANDLE_COLOR;
 
+    // draw wick
+    const wickY =
+      this.canvasPadding / 2 +
+      (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    ctx.strokeStyle = this.defaultPlotColor;
+    ctx.beginPath();
+    ctx.moveTo(this.backShift + x + this.candleWidth / 2, wickY);
+    ctx.lineTo(this.backShift + x + this.candleWidth / 2, wickY + wickHeight);
+    ctx.stroke();
+
     // draw body
     const bodyY =
       close >= open
@@ -337,15 +347,8 @@ export class ChartCanvasRenderer {
     ctx.fillStyle = color;
     ctx.fillRect(this.backShift + x, this.canvasPadding / 2 + bodyY, this.candleWidth, bodyHeight);
 
-    // draw wick
-    const wickY =
-      this.canvasPadding / 2 +
-      (1 - (high - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
-    ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(this.backShift + x + this.candleWidth / 2, wickY);
-    ctx.lineTo(this.backShift + x + this.candleWidth / 2, wickY + wickHeight);
-    ctx.stroke();
+    ctx.strokeStyle = this.defaultPlotColor;
+    ctx.strokeRect(this.backShift + x, this.canvasPadding / 2 + bodyY, this.candleWidth, bodyHeight);
   }
 
   private renderPriceScale(maxPrice: number, priceStep: number, ctx: CanvasRenderingContext2D) {
