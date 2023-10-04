@@ -1,5 +1,6 @@
 export interface MappedListing {
   name: string;
+  marketCap: string;
   symbol: string;
   priceChange7d: string;
   priceChange24h: string;

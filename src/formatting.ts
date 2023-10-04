@@ -1,13 +1,17 @@
+import { GeneralTimeIntervals } from "./enums";
+import { getLinkText } from "./get-link-text.helper";
 import { MappedListing } from "./interfaces/mapped-listing.interface";
 
 export function processDayTradingSelectionForMessage(selection: MappedListing[]) {
   return selection.reduce((res, listing, i) => {
     return res
-      .concat(`\n \\#${i + 1}: __ *${listing.symbol}* __ \\(${prepareString(listing.name)}\\)`)
-      .concat(`\n \\- Price change 7d: ${prepareString(listing.priceChange7d)}%`)
-      .concat(`\n \\- Price change 24h: ${prepareString(listing.priceChange24h)}%`)
+      .concat(`\n \\#${i + 1}: __ *${getLinkText(`${listing.symbol}USDT`, GeneralTimeIntervals.h1)}* __ \\(${prepareString(listing.name)}\\)`)
+      .concat(`\n \\- Capital: ${prepareString(listing.marketCap)}`)
       .concat(`\n \\- Volume 24h: ${prepareString(listing.volume24h)}`)
       .concat(`\n \\- Volume change 24h: ${prepareString(listing.volumeChange24h)}%`)
+      .concat(`\n \\- Price change 7d: ${prepareString(listing.priceChange7d)}%`)
+      .concat(`\n \\- Price change 24h: ${prepareString(listing.priceChange24h)}%`)
+
       .concat(`\n`);
   }, 'Day trading selection: \n');
 }

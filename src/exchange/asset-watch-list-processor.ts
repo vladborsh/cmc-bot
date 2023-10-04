@@ -18,7 +18,7 @@ import { ChartCanvasRenderer } from './chart-canvas-renderer';
 import { TechIndicatorService } from '../indicators/tech-indicator-service';
 import TelegramBot from 'node-telegram-bot-api';
 import { CandleChartData } from '../interfaces/charts/candlestick-chart-data';
-import { getLinkText } from '../ge-link-text.helper';
+import { getLinkText } from '../get-link-text.helper';
 import { DynamicConfig } from '../dynamic-config';
 import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
 import { CapitalComClient } from './capital-com-client';

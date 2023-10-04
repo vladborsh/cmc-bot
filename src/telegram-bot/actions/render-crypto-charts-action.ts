@@ -8,6 +8,7 @@ import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
 import { GeneralTimeIntervals, LogMessageType } from '../../enums';
 import { TechIndicatorService } from '../../indicators/tech-indicator-service';
 import { BotLogger } from '../../utils/bot-logger';
+import { getLinkText } from '../../get-link-text.helper';
 
 export class RenderCryptoChartsAction {
   private logger: Logger | undefined;
@@ -55,7 +56,10 @@ export class RenderCryptoChartsAction {
           chartData: candles,
         });
         const img = chartCanvasRenderer.generateImage(candles, data || {});
-        await this.bot.sendPhoto(chatId, img, { caption: `${symbol} price chart` });
+        await this.bot.sendPhoto(chatId, img, {
+          caption: `${getLinkText(symbol, GeneralTimeIntervals.h1)} price chart`,
+          parse_mode: 'MarkdownV2',
+        });
         count++;
       } catch (e) {
         this.logger?.error({ chatId, type: LogMessageType.CHART_IMAGE_ERROR, message: `${symbol}, ${e}` });

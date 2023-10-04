@@ -7,7 +7,7 @@ export function createBotState(initial = BotStates.INITIAL): StateMachine.Servic
     states: {
       [BotStates.INITIAL]: {
         on: {
-          [BotTransitions.GET_TOP_CRYPTO]: BotStates.CRYPTO_CURRENCY_SORT,
+          [BotTransitions.GET_TOP_CRYPTO]: BotStates.FETCH_CRYPTO_CURRENCY,
           [BotTransitions.GET_ASSET_CHART]: BotStates.ACCEPT_ASSET_CHART_NAME,
           [BotTransitions.GET_INDICES]: BotStates.FETCH_INDICES,
           [BotTransitions.GO_TO_WATCH_LIST]: BotStates.WATCHLIST,

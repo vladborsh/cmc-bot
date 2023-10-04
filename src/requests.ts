@@ -21,10 +21,10 @@ export class Requests {
             'X-CMC_PRO_API_KEY': this.envConfig.CMC_TOKEN,
           },
           params: {
-            limit: 100,
+            limit: 200,
             sort: 'market_cap',
             sort_dir: 'desc',
-            volume_24h_min: 20000000,
+            volume_24h_min: 5000000,
           },
         });
       } catch (ex) {

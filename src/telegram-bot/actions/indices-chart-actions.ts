@@ -7,7 +7,7 @@ import { GeneralTimeIntervals } from '../../enums';
 import { TechIndicatorService } from '../../indicators/tech-indicator-service';
 import { Logger } from 'winston';
 import { BotLogger } from '../../utils/bot-logger';
-import { getLinkText } from '../../ge-link-text.helper';
+import { getLinkText } from '../../get-link-text.helper';
 import { Exchange } from '../../interfaces/user-state.interface';
 
 export class IndicesChartAction {

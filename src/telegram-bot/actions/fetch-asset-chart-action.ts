@@ -6,7 +6,7 @@ import { BinanceClient } from '../../exchange/binance-client';
 import { ChartCanvasRenderer } from '../../exchange/chart-canvas-renderer';
 import { GeneralTimeIntervals } from '../../enums';
 import { TechIndicatorService } from '../../indicators/tech-indicator-service';
-import { getLinkText } from '../../ge-link-text.helper';
+import { getLinkText } from '../../get-link-text.helper';
 import { CapitalComClient } from '../../exchange/capital-com-client';
 import { Exchange } from '../../interfaces/user-state.interface';
 import { IExchangeClient } from '../../interfaces/exchange-client.interface';
