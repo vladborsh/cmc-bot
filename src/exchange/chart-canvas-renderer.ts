@@ -8,6 +8,7 @@ import { HorizontalPlotLine } from '../interfaces/charts/horizontal-plot-line';
 import { DynamicConfigValues } from '../interfaces/dynamic-config.interface';
 import { ChartDrawingsData } from '../interfaces/indicator/sm-indicator-response';
 import { PlotRectangle } from '../interfaces/charts/plot-rectangle';
+import { RayLine } from '../interfaces/charts/ray-line';
 
 export class ChartCanvasRenderer {
   canvasWidth: number;
@@ -49,7 +50,7 @@ export class ChartCanvasRenderer {
    * @param plotshapes - arrayOfOpenTime where to draw shape (for markup purposes)
    * @returns
    */
-  generateImage(candles: CandleChartData[], chartDrawingsData: ChartDrawingsData): Buffer {
+  generateImage(candles: CandleChartData[], chartDrawingsData: ChartDrawingsData, chartName?: string): Buffer {
     const canvas = createCanvas(this.canvasWidth, this.canvasHeight);
     const ctx = canvas.getContext('2d');
 
@@ -107,6 +108,12 @@ export class ChartCanvasRenderer {
       });
     }
 
+    if (chartDrawingsData.rayLines) {
+      chartDrawingsData.rayLines.forEach((rayLine) => {
+        this.renderRayLine(rayLine, priceRange, minPrice, ctx);
+      });
+    }
+
     if (chartDrawingsData.verticalLines) {
       chartDrawingsData.verticalLines.forEach((line) => this.renderVerticalLine(line, ctx));
     }
@@ -122,10 +129,21 @@ export class ChartCanvasRenderer {
     });
 
     this.renderPriceScale(maxPrice, priceStep, ctx);
-
     this.renderDatetimeLabels(candles, this.visibleNumOfCandles, ctx);
 
+    if (chartName) {
+      this.renderTitle(chartName, ctx);
+    }
+
     return canvas.toBuffer('image/png');
+  }
+
+  private renderTitle(chartName: string, ctx: CanvasRenderingContext2D) {
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#000000aa'
+    ctx.fillText(chartName, this.canvasWidth/2, 30);
   }
 
   private renderPlotLine(
@@ -165,6 +183,39 @@ export class ChartCanvasRenderer {
       } else if (plotLine.titleLocation === LineTitleLocation.LEFT_TOP) {
         ctx.fillText(plotLine.title, x1, y1 - 12);
       }
+    }
+  }
+
+  private renderRayLine(
+    rayLine: RayLine,
+    priceRange: number,
+    minPrice: number,
+    ctx: CanvasRenderingContext2D
+  ) {
+    const x1 = this.backShift + rayLine.x * (this.candleWidth + this.candlePadding);
+    const y1 =
+      this.canvasPadding / 2 +
+      (1 - (rayLine.y - minPrice) / priceRange) * (this.canvasHeight - this.canvasPadding);
+    const x2 = this.canvasWidth;
+    const y2 = y1
+
+    if (rayLine.style === PlotLineStyle.DASHED) {
+      ctx.setLineDash([3, 2]);
+    } else if (rayLine.style === PlotLineStyle.DOTTED) {
+      ctx.setLineDash([1, 1]);
+    }
+    ctx.strokeStyle = rayLine.color || this.defaultPlotColor;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    /* Unset line dash */
+    ctx.setLineDash([]);
+
+    if (rayLine.title) {
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = rayLine.color || this.defaultPlotColor;
+      ctx.fillText(rayLine.title, this.canvasWidth - 100, y1 - 12);
     }
   }
 
@@ -243,7 +294,7 @@ export class ChartCanvasRenderer {
     /* Unset line dash */
     ctx.setLineDash([]);
 
-    if (plotLine.title && plotLine.titleLocation) {
+    if (plotLine.title) {
       ctx.font = '12px sans-serif';
       ctx.fillStyle = plotLine.color || this.defaultPlotColor;
       ctx.fillText(plotLine.title, this.canvasWidth - 100, y1 - 12);

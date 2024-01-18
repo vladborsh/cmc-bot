@@ -16,10 +16,9 @@ if (isDotEnvEnabled) {
 const envConfig = EnvConfig.getInstance();
 const dynamicConfig = DynamicConfig.getInstance(envConfig);
 
-// Heroku requires port for listening
-setupPortListener(envConfig);
-
 if (isBotEnabled) {
+  // Heroku requires port for listening
+  setupPortListener(envConfig);
   runTelegramBot(envConfig);
 } else {
   getMarketSelection(BotCommands.volume24h, dynamicConfig, envConfig);

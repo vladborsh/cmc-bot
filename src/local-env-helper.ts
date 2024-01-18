@@ -13,5 +13,6 @@ export async function getMarketSelection(command: BotCommands, dynamicConfig: Dy
     marketData,
     command,
   );
-  console.log(selection);
+
+  selection.forEach(sel => console.log(sel.symbol, sel.marketCap, sel.cap2volume7dRatio, sel.cap2volume24hRatio))
 }

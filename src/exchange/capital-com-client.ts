@@ -24,7 +24,7 @@ export class CapitalComClient implements IExchangeClient {
       this.instance = new CapitalComClient(envConfig, capitalComSession);
     }
 
-    setInterval(async () => await capitalComSession.checkAndRenewSession(), 1111);
+    setInterval(async () => await capitalComSession.checkAndRenewSession(), 11111);
 
     return this.instance;
   }
@@ -108,12 +108,15 @@ export class CapitalComClient implements IExchangeClient {
       let isSubscribed = true;
       let initialTimeoutId: NodeJS.Timeout;
       let nextEmissionTimeoutId: NodeJS.Timeout;
+      let lastCandle: CandleChartData | undefined;
 
       const emitCandleData = async () => {
         try {
           const candles = await this.getCandles(symbol, timeInterval, 800);
 
-          observer.next(candles);
+          if (!lastCandle || lastCandle.closeTime !== candles[candles.length-1].closeTime) {
+            observer.next(candles);
+          }
         } catch (e) {
           let err = e as AxiosError;
           observer.error(err.message ? err.message : err);

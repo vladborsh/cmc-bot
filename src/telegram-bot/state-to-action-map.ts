@@ -209,15 +209,20 @@ export const stateActions: Record<BotStates, BotStateHandler> = {
     }
     state.send(BotTransitions.BACK_TO_START);
   },
-  [BotStates.FETCH_CRYPTO_CURRENCY]: async (bot: TelegramBot, message: TelegramBot.Message) => {
+  [BotStates.FETCH_CRYPTO_CURRENCY]: async (
+    bot: TelegramBot,
+    message: TelegramBot.Message,
+    state: StateMachine.Service<any, any>) => {
     const envConfig = EnvConfig.getInstance();
     const action = new SelectCryptoAction(
+      EnvConfig.getInstance(),
       DynamicConfig.getInstance(envConfig),
       bot,
       DynamoDBClient.getInstance(envConfig),
       new Requests(envConfig)
     );
     await action.execute(message);
+    state.send(BotTransitions.BACK_TO_START);
   },
   [BotStates.CRYPTO_CURRENCY_CHARTS]: async (
     bot: TelegramBot,

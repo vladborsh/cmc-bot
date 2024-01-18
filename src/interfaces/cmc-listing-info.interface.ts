@@ -1,6 +1,8 @@
 export interface CMCListingInfo {
+  id: number;
   symbol: string;
   name: string;
+  tags?: string[];
   quote: {
     USD: {
       percent_change_24h: number;

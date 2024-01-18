@@ -25,6 +25,7 @@ export class Requests {
             sort: 'market_cap',
             sort_dir: 'desc',
             volume_24h_min: 5000000,
+            aux: 'volume_7d,tags,market_cap_by_total_supply',
           },
         });
       } catch (ex) {

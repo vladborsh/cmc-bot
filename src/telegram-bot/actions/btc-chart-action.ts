@@ -22,6 +22,7 @@ export class BtcChartAction {
       GeneralTimeIntervals.h1,
       dynamicConfigValues.CHART_HISTORY_SIZE
     );
+
     const { data } = await TechIndicatorService.getInstance(this.envConfig).getSMIndicator({
       chartData: candles,
       inputs: {
