@@ -10,6 +10,7 @@
     "start": "nodemon src/index.ts --local --no-bot",
     "start:bot": "nodemon src/index.ts --local",
     "start:prod": "node dist/index.js",
+    "test-strat": "nodemon src/test-strat.ts",
     "build": "tsc"
   },
   "author": "Vlad Borsh",
@@ -28,6 +29,7 @@
     "node-telegram-bot-api": "0.61.0",
     "nodeplotlib": "1.1.2",
     "npm": "9.6.6",
+    "pdf-lib": "^1.17.1",
     "rxjs": "7.8.1",
     "technicalindicators": "3.1.0",
     "winston": "^3.3.3",

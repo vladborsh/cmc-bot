@@ -10,6 +10,10 @@ export interface SmIndicatorInputs {
   internalStructureLength?: number;
   highStructureLength?: number;
   sessions?: SmIndicatorSessions[];
+  timings?: {
+    time: string;
+    label: string;
+  }[]; // [8:00]
   isEODShown?: boolean;
 }
 

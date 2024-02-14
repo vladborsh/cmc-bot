@@ -44,12 +44,16 @@ export class BinanceClient implements IExchangeClient {
   public async getCandles(
     asset: string,
     interval: GeneralTimeIntervals,
-    limit: number
+    limit: number,
+    startTime?: number,
+    endTime?: number,
   ): Promise<CandleChartData[]> {
     const rawCandles = await this.client.candles({
       symbol: asset,
       interval: mapGeneralTimeIntervalToBinance[interval],
       limit,
+      startTime,
+      endTime,
     });
 
     return BinanceClient.mapCandleChartResult(rawCandles);

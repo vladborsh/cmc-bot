@@ -9,6 +9,7 @@ import { mapGeneralTimeIntervalToCapCom } from './configs/capital-com-client.con
 import { CapitalComMarketMarketData } from './configs/capital-com-market-data.interface';
 import { getFromToDate, mapMarketDataToChartData } from './configs/capital-com.helpers';
 import { CapitalComSession } from './capital-com-session';
+import { format } from 'date-fns';
 
 export class CapitalComClient implements IExchangeClient {
   static instance: CapitalComClient;
@@ -36,7 +37,9 @@ export class CapitalComClient implements IExchangeClient {
   public async getCandles(
     symbol: string,
     interval: GeneralTimeIntervals,
-    limit: number
+    limit: number,
+    startTime?: number,
+    endTime?: number
   ): Promise<CandleChartData[]> {
     const marketResponse: AxiosResponse<CapComMarketData> = await axios.get(
       `${this.envConfig.CAPITAL_COM_URL}api/v1/prices/${symbol}`,
@@ -48,11 +51,18 @@ export class CapitalComClient implements IExchangeClient {
         params: {
           resolution: mapGeneralTimeIntervalToCapCom[interval],
           max: limit,
+          ... startTime ? { from: this.convertTime(startTime) } : {},
+          ... endTime ? { to: this.convertTime(endTime)  } : {},
         },
       }
     );
 
     return mapMarketDataToChartData(marketResponse.data);
+  }
+
+  private convertTime(milliseconds: number): string {
+    const date = new Date(milliseconds);
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
   }
 
   public getCandlesStream(
