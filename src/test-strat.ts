@@ -71,10 +71,12 @@ async function generatePDF(
 
   let dateTime = startDate;
 
+  console.log(dateTime, endDate)
+
   while (dateTime <= endDate) {
     // Check if the current date is a weekend
     if (dateTime.getDay() === 0 || dateTime.getDay() === 6) {
-      dateTime = add(dateTime, iterationTimeShift);
+      dateTime = add(dateTime, {days: 1});
       // Skip this iteration of the loop if it's Saturday (6) or Sunday (0)
       continue;
     }
@@ -149,12 +151,12 @@ async function generatePDF(
   console.log('PDF Generated: tradingReport.pdf');
 }
 
-// Example usage BTC
-/* generatePDF(
-  new Date(2023, 10, 1, 15),
-  new Date(2024, 0, 7),
+
+generatePDF(
+  new Date(2023, 9, 1, 15),
+  new Date(2024, 1, 7),
   GeneralTimeIntervals.h1,
-  { hours: 48 },
+  { hours: 24*4 },
   { hours: 24*7 },
   { hours: -500 },
   'BTCUSDT',
@@ -162,9 +164,9 @@ async function generatePDF(
   {
     isEODShown: true,
   }
-); */
+);
 
-generatePDF(
+/* generatePDF(
   new Date(2023, 10, 1, 14, 30),
   new Date(2024, 1, 13, 14, 30),
   GeneralTimeIntervals.m1,
@@ -187,4 +189,4 @@ generatePDF(
         label: '',
       }]
   }
-);
+); */
