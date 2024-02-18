@@ -52,8 +52,8 @@ export class BinanceClient implements IExchangeClient {
       symbol: asset,
       interval: mapGeneralTimeIntervalToBinance[interval],
       limit,
-      startTime,
-      endTime,
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
     });
 
     return BinanceClient.mapCandleChartResult(rawCandles);
