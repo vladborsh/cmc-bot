@@ -1,5 +1,5 @@
-import { add, eachDayOfInterval, addMinutes } from 'date-fns';
-import { PDFDocument } from 'pdf-lib';
+import { add, eachDayOfInterval, addMinutes, format } from 'date-fns';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import { BinanceClient } from './exchange/binance-client';
 import { EnvConfig } from './env-config';
@@ -58,6 +58,7 @@ async function generatePDF(
   iterationTimeShift: TimeShift,
   historyShift: TimeShift,
   asset: string,
+  documentName: string,
   targetDayOfWeek?: number,
   indicatorInput?: SmIndicatorInputs,
 ): Promise<void> {
@@ -93,7 +94,7 @@ async function generatePDF(
       }
     }
 
-    console.log(`\n${dateTime}`)
+    console.log(`\n ${asset}: ${dateTime}`)
     const startTime = add(dateTime, historyShift).getTime();
     const endTime = dateTime.getTime();
 
@@ -137,19 +138,65 @@ async function generatePDF(
 
     // Calculate image placement to fit both on the same page
     const { width, height } = page.getSize();
-    const imageHeight = height / 2; // Adjust based on your needs
 
-    page.drawImage(image1Embed, { x: 0, y: height / 2, width: width, height: imageHeight });
-    page.drawImage(image2Embed, { x: 0, y: 0, width: width, height: imageHeight });
+    // Title configuration
+    const titleText = `${asset}: ${format(dateTime, 'yyyy-MM-dd')}, ${format(dateTime, 'EEE')}`;
+    const titleFontSize = 12;
+    const titleMargin = 5; // Margin between the title and the images
+    const imageHeight = (page.getHeight() / 2) - titleFontSize - titleMargin;
+
+    // extra padding left for sew
+    const leftShift = 50;
+
+    // Draw title
+    page.drawText(titleText, {
+      x: leftShift,
+      y: page.getHeight() - titleFontSize - titleMargin,
+      size: titleFontSize,
+      color: rgb(0, 0, 0),
+    });
+
+    page.drawImage(image1Embed, { x: leftShift, y: height / 2, width: width-leftShift, height: imageHeight });
+    page.drawImage(image2Embed, { x: leftShift, y: 0, width: width-leftShift, height: imageHeight });
 
     // Adjust the dateTime increment based on the interval logic
     dateTime = add(dateTime, iterationTimeShift);
   }
 
   const pdfBytes = await pdfDoc.save();
-  fs.writeFileSync('test.pdf', pdfBytes);
-  console.log('PDF Generated: tradingReport.pdf');
+  fs.writeFileSync(`${documentName}.pdf`, pdfBytes);
+  console.log('PDF Generated');
 }
+/*
+generatePDF(
+  new Date(2023, 9, 1, 15),
+  new Date(2024, 1, 7),
+  GeneralTimeIntervals.h1,
+  { hours: 24*4 },
+  { hours: 24*7 },
+  { hours: -500 },
+  'BTCUSDT',
+  'btcusdt',
+  2,
+  {
+    isEODShown: true,
+  }
+);
+
+generatePDF(
+  new Date(2023, 9, 1, 15),
+  new Date(2024, 1, 7),
+  GeneralTimeIntervals.h1,
+  { hours: 24*4 },
+  { hours: 24*7 },
+  { hours: -500 },
+  'ETHUSDT',
+  'ethusdt',
+  2,
+  {
+    isEODShown: true,
+  }
+);
 
 
 generatePDF(
@@ -159,21 +206,23 @@ generatePDF(
   { hours: 24*4 },
   { hours: 24*7 },
   { hours: -500 },
-  'BTCUSDT',
+  'SOLUSDT',
+  'solusdt',
   2,
   {
     isEODShown: true,
   }
-);
+); */
 
-/* generatePDF(
-  new Date(2023, 10, 1, 14, 30),
-  new Date(2024, 1, 13, 14, 30),
+generatePDF(
+  new Date(2024, 0, 3, 14, 40),
+  new Date(2024, 1, 14, 14, 40),
   GeneralTimeIntervals.m1,
   { minutes: 50 },
   { hours: 24 },
   { hours: -10 },
   'US100',
+  'us100',
   undefined,
   {
     isEODShown: true,
@@ -188,5 +237,30 @@ generatePDF(
         time: '15:10',
         label: '',
       }]
+  }
+);
+/*
+generatePDF(
+  new Date(2024, 0, 3, 7, 34),
+  new Date(2024, 1, 14, 7, 34),
+  GeneralTimeIntervals.m1,
+  { minutes: 50 },
+  { hours: 24 },
+  { hours: -10 },
+  'EURUSD',
+  'eurusd',
+  undefined,
+  {
+    isEODShown: true,
+    timings: [
+      {
+        time: '7:33',
+        label: '2:33',
+      },
+      {
+        time: '8:00',
+        label: '3:00',
+      }
+    ]
   }
 ); */
